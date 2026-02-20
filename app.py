@@ -144,14 +144,27 @@ def compress_video(
     return {"original_size": orig, "compressed_size": new, "reduction_pct": round((1 - new / orig) * 100, 1)}
 
 
-def extract_frame0(compressed_path: str, frame0_path: str) -> int:
-    """Extract the first frame from a compressed video as a PNG image."""
+def extract_frame0(compressed_path: str, frame0_png_path: str) -> dict:
+    """Extract the first frame from a compressed video as a lossless PNG."""
     cmd = [
         "ffmpeg", "-y", "-i", compressed_path,
-        "-frames:v", "1", "-update", "1", frame0_path,
+        "-frames:v", "1", "-update", "1", frame0_png_path,
     ]
     subprocess.run(cmd, capture_output=True, text=True, check=True)
-    return os.path.getsize(frame0_path)
+    img = Image.open(frame0_png_path)
+    png_size = os.path.getsize(frame0_png_path)
+
+    estimates = {"png": png_size}
+    for q in [85, 90, 95]:
+        buf = io.BytesIO()
+        img.convert("RGB").save(buf, "JPEG", quality=q, optimize=True)
+        estimates[f"jpg_{q}"] = buf.tell()
+    for q in [80, 90]:
+        buf = io.BytesIO()
+        img.convert("RGB").save(buf, "WEBP", quality=q)
+        estimates[f"webp_{q}"] = buf.tell()
+
+    return {"width": img.width, "height": img.height, "png_size": png_size, "estimates": estimates}
 
 
 # ---------------------------------------------------------------------------
@@ -470,8 +483,8 @@ def compress():
                 strip_audio=data.get("strip_audio", True),
                 max_fps=data.get("max_fps"),
             )
-            frame0_size = extract_frame0(output_path, frame0_path)
-            result["frame0_size"] = frame0_size
+            frame0_info = extract_frame0(output_path, frame0_path)
+            result["frame0"] = frame0_info
 
         elif asset_type == "image":
             fmt = data.get("fmt", IMAGE_PRESETS.get(preset_name, IMAGE_PRESETS["balanced"])["fmt"])
@@ -519,12 +532,32 @@ def download(file_id):
 
 @app.route("/api/download/<file_id>/frame0")
 def download_frame0(file_id):
-    frame0 = UPLOAD_DIR / f"{file_id}_frame0.png"
-    if not frame0.exists():
+    frame0_png = UPLOAD_DIR / f"{file_id}_frame0.png"
+    if not frame0_png.exists():
         return jsonify({"error": "Frame 0 file not found"}), 404
+
     originals = [m for m in UPLOAD_DIR.glob(f"{file_id}.*") if "_compressed" not in m.name and "_frame0" not in m.name]
     stem = originals[0].stem if originals else "video"
-    return send_file(str(frame0), as_attachment=True, download_name=f"{stem}_frame0.png")
+
+    fmt = request.args.get("fmt", "png").lower()
+    quality = int(request.args.get("quality", 90))
+
+    if fmt == "png":
+        return send_file(str(frame0_png), as_attachment=True, download_name=f"{stem}_frame0.png")
+
+    img = Image.open(frame0_png).convert("RGB")
+    buf = io.BytesIO()
+    if fmt in ("jpg", "jpeg"):
+        img.save(buf, "JPEG", quality=quality, optimize=True)
+        ext, mime = "jpg", "image/jpeg"
+    elif fmt == "webp":
+        img.save(buf, "WEBP", quality=quality)
+        ext, mime = "webp", "image/webp"
+    else:
+        return send_file(str(frame0_png), as_attachment=True, download_name=f"{stem}_frame0.png")
+
+    buf.seek(0)
+    return send_file(buf, as_attachment=True, download_name=f"{stem}_frame0.{ext}", mimetype=mime)
 
 
 @app.route("/api/preview/<file_id>")
