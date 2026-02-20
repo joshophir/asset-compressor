@@ -680,7 +680,6 @@
           <button class="frame0-pill" data-fmt="png" data-q="0">PNG <span class="frame0-pill-size" id="f0-size-png"></span></button>
           <button class="frame0-pill active" data-fmt="jpg" data-q="90">JPEG 90 <span class="frame0-pill-size" id="f0-size-jpg90"></span></button>
           <button class="frame0-pill" data-fmt="jpg" data-q="85">JPEG 85 <span class="frame0-pill-size" id="f0-size-jpg85"></span></button>
-          <button class="frame0-pill" data-fmt="webp" data-q="90">WebP 90 <span class="frame0-pill-size" id="f0-size-webp90"></span></button>
         </div>
         <button class="frame0-btn" id="frame0-btn">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="18" height="18">
@@ -727,7 +726,7 @@ const TIPS = {
     &bull; Animations usually don't need audio &mdash; it's stripped by default.`,
   image: `<strong>Image tips:</strong><br/>
     &bull; PNG images with no transparency are automatically converted to JPEG for big savings.<br/>
-    &bull; If your image needs transparency, use WebP format in the advanced options.<br/>
+    &bull; If your image needs transparency, it will be saved as PNG to preserve the alpha channel.<br/>
     &bull; Always use the <strong>2x export</strong> from your design tool &mdash; 1x looks blurry on modern phones.`,
   lottie: `<strong>Lottie tips:</strong><br/>
     &bull; Most Lotties from Creative are image sequences (raster frames inside a zip). That's what this tool optimizes.<br/>
@@ -832,7 +831,7 @@ function renderStats(data) {
       notice.textContent = 'This image has an alpha channel but it\'s fully opaque. It will be converted to JPEG for much better compression.';
     } else if (data.alpha_used) {
       notice.className = 'alpha-notice warn visible';
-      notice.textContent = 'This image uses transparency. It will be saved as WebP to preserve the alpha channel.';
+      notice.textContent = 'This image uses transparency. It will be saved as PNG to preserve the alpha channel.';
     }
   }
   if (data.asset_type === 'lottie' && !data.is_image_sequence) {
@@ -895,13 +894,13 @@ function renderAdvanced(type, data) {
       </div>`;
   } else if (type === 'image') {
     const fmtOptions = data.alpha_used
-      ? '<option value="webp" selected>WebP</option><option value="png">PNG</option>'
-      : '<option value="jpg" selected>JPEG</option><option value="webp">WebP</option><option value="png">PNG</option>';
+      ? '<option value="png" selected>PNG</option>'
+      : '<option value="jpg" selected>JPEG</option><option value="png">PNG</option>';
     html = `
       <div class="option-row">
         <label>Format</label>
         <select id="adv-fmt">${fmtOptions}</select>
-        <span class="hint">${data.alpha_used ? 'WebP preserves transparency' : 'JPEG is best for non-transparent images'}</span>
+        <span class="hint">${data.alpha_used ? 'PNG preserves transparency' : 'JPEG is best for non-transparent images'}</span>
       </div>
       <div class="option-row">
         <label>Quality</label>
@@ -1088,7 +1087,6 @@ function renderFrame0Options(f0, fileId) {
   setText('f0-size-png', est.png);
   setText('f0-size-jpg90', est.jpg_90);
   setText('f0-size-jpg85', est.jpg_85);
-  setText('f0-size-webp90', est.webp_90);
 
   state.frame0Fmt = 'jpg';
   state.frame0Q = 90;
