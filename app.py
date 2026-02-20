@@ -29,9 +29,9 @@ ASSET_TYPES = {
 }
 
 VIDEO_PRESETS = {
-    "light":      {"crf": 23, "preset": "slow"},
-    "balanced":   {"crf": 27, "preset": "slow"},
-    "aggressive": {"crf": 31, "preset": "slow"},
+    "light":      {"crf": 23, "preset": "medium"},
+    "balanced":   {"crf": 27, "preset": "medium"},
+    "aggressive": {"crf": 31, "preset": "medium"},
 }
 
 LOTTIE_PRESETS = {

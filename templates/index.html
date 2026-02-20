@@ -295,6 +295,54 @@
     .mu-prop-title { font-size: 15px; font-weight: 700; color: #fff; }
     .mu-prop-sub { font-size: 13px; color: rgba(255,255,255,0.5); }
 
+    /* --- Full Screen Interstitial mockup --- */
+    .mu-fsi {
+      width: 100%; height: 100%; position: relative; overflow: hidden;
+    }
+    .mu-fsi .mu-bg {
+      position: absolute; inset: 0; z-index: 0;
+    }
+    .mu-fsi .mu-bg video, .mu-fsi .mu-bg img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .mu-fsi .mu-bg dotlottie-player {
+      width: 100%; height: 100%; display: block;
+    }
+    .mu-fsi .mu-overlay {
+      position: absolute; inset: 0; z-index: 1;
+      display: flex; flex-direction: column;
+      background: linear-gradient(to bottom,
+        rgba(0,0,0,0.15) 0%,
+        transparent 30%,
+        transparent 50%,
+        rgba(0,0,0,0.65) 75%,
+        rgba(0,0,0,0.85) 100%
+      );
+    }
+    .mu-fsi .mu-close {
+      position: absolute; top: 56px; right: 16px; z-index: 20;
+    }
+    .mu-fsi .mu-content {
+      margin-top: auto; padding: 0 24px; text-align: center;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .mu-fsi .mu-h1 {
+      font-size: 28px; font-weight: 800; color: #fff; line-height: 1.15;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+    }
+    .mu-fsi .mu-sub {
+      font-size: 15px; color: rgba(255,255,255,0.8); line-height: 1.4;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.4);
+    }
+    .mu-fsi .mu-footer {
+      padding: 16px 24px 0; flex-shrink: 0;
+    }
+    .mu-fsi .mu-legal {
+      font-size: 10px; color: rgba(255,255,255,0.4); text-align: center;
+      padding: 8px 24px 0; line-height: 1.4;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    }
+
     /* --- Full Sheet mockup --- */
     .mu-fs {
       width: 100%; height: 100%; background: #121212;
@@ -565,6 +613,7 @@
     </div>
     <div class="preview-mode-selector" id="preview-mode-selector">
       <button class="preview-mode-btn active" data-mode="raw">Side by side</button>
+      <button class="preview-mode-btn" data-mode="fullscreen">Full Screen</button>
       <button class="preview-mode-btn" data-mode="fullsheet">Full Sheet</button>
       <button class="preview-mode-btn" data-mode="halfsheet">Half Sheet</button>
       <button class="preview-mode-btn" data-mode="banner">Banner</button>
@@ -678,7 +727,11 @@ async function handleFile(file) {
 
   try {
     const res = await fetch('/api/upload', { method: 'POST', body: form });
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch {
+      alert('Server returned an invalid response. The file may be too large — max 50 MB.'); resetAll(); return;
+    }
     if (!res.ok) { alert(data.error || 'Upload failed'); resetAll(); return; }
 
     state.fileId = data.file_id;
@@ -915,7 +968,11 @@ async function runCompress(presetOverride) {
   }
 
   const res = await fetch('/api/compress', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  const data = await res.json();
+  const text = await res.text();
+  let data;
+  try { data = JSON.parse(text); } catch {
+    throw new Error('Server returned an invalid response. The file may be too large for the hosted server — try a more aggressive preset or a smaller file.');
+  }
   if (!res.ok) throw new Error(data.error || 'Compression failed');
 
   $('result-original').textContent = formatSize(data.original_size);
@@ -1063,7 +1120,23 @@ function renderMockup(mode, variant, type, fileId) {
   const statusbar = `<div class="mu-statusbar"><span>9:41</span><div class="mu-status-icons">\u25CF\u25CF\u25CF \u25CF\u25CF\u25CF\u25CF \u2588</div></div>`;
   const homeBar = `<div class="mu-home-bar"></div>`;
 
-  if (mode === 'fullsheet') {
+  if (mode === 'fullscreen') {
+    screen.innerHTML = `
+      <div class="mu-fsi mu">
+        <div class="mu-bg mu-asset-el">${asset}</div>
+        <div class="mu-overlay">
+          ${statusbar}
+          <div class="mu-close">\u2715</div>
+          <div class="mu-content">
+            <div class="mu-h1">Large headline with<br/>48 chars max</div>
+            <div class="mu-sub">This is an optional sub caption that can run into a couple of lines or more.</div>
+          </div>
+          <div class="mu-footer"><div class="mu-cta-btn">Let's go!</div></div>
+          <div class="mu-legal">OnePay is a financial technology company, not a bank. Banking services provided by Coastal Community Bank or Lead Bank, Members FDIC.</div>
+          ${homeBar}
+        </div>
+      </div>`;
+  } else if (mode === 'fullsheet') {
     const isBleed = variant === 'bleed';
     const heroClass = isBleed ? 'mu-hero-bleed' : 'mu-hero-inline';
     const titlebar = isBleed ? '' : `<div class="mu-titlebar"><span class="mu-titlebar-text">Title</span><div class="mu-close">\u2715</div></div>`;
