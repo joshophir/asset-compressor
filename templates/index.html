@@ -206,6 +206,208 @@
     .retry-btn .retry-label { display: block; margin-bottom: 2px; }
     .retry-btn .retry-hint { display: block; font-size: 11px; font-weight: 400; color: var(--text-muted); }
 
+    /* Preview mode selector */
+    .preview-mode-selector {
+      display: flex; gap: 6px; margin-bottom: 16px; padding: 4px;
+      background: var(--surface); border-radius: 10px; border: 1px solid var(--border);
+    }
+    .preview-mode-btn {
+      flex: 1; padding: 8px 12px; border: none; border-radius: 7px;
+      background: transparent; color: var(--text-muted); font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s; white-space: nowrap;
+    }
+    .preview-mode-btn:hover { color: var(--text); background: var(--surface-2); }
+    .preview-mode-btn.active { background: var(--accent); color: white; }
+
+    /* iPhone frame */
+    .insitu-container { display: flex; justify-content: center; margin-bottom: 20px; }
+    .phone-wrapper {
+      width: 320px;
+      transform-origin: top center;
+    }
+    .phone-frame {
+      width: 393px; height: 852px;
+      background: #000; border-radius: 55px;
+      border: 4px solid #3a3a3c;
+      position: relative; overflow: hidden;
+      transform: scale(0.814);
+      transform-origin: top left;
+    }
+    .phone-notch {
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      width: 126px; height: 36px; background: #000; border-radius: 20px; z-index: 50;
+    }
+    .phone-screen {
+      width: 100%; height: 100%; overflow: hidden; position: relative;
+      border-radius: 51px;
+    }
+
+    /* Shared mockup text placeholders */
+    .mu-bar {
+      border-radius: 4px; background: rgba(255,255,255,0.12);
+    }
+    .mu-bar-bright {
+      border-radius: 4px; background: rgba(255,255,255,0.85);
+    }
+    .mu-bar-dim {
+      border-radius: 3px; background: rgba(255,255,255,0.07);
+    }
+
+    /* Full sheet interstitial mockup */
+    .mockup-fullsheet {
+      width: 100%; height: 100%; background: #0a0a0f;
+      display: flex; flex-direction: column;
+    }
+    .mockup-fullsheet .mu-hero {
+      width: 100%; height: 312px; overflow: hidden; position: relative; flex-shrink: 0;
+      background: linear-gradient(135deg, #0d1b2a 0%, #1b2838 100%);
+    }
+    .mockup-fullsheet .mu-hero video,
+    .mockup-fullsheet .mu-hero img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .mockup-fullsheet .mu-hero dotlottie-player {
+      width: 100%; height: 100%; display: block;
+    }
+    .mockup-fullsheet .mu-hero-gradient {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 80px;
+      background: linear-gradient(transparent, #0a0a0f);
+    }
+    .mockup-fullsheet .mu-statusbar {
+      position: absolute; top: 0; left: 0; right: 0; height: 54px; z-index: 10;
+      display: flex; align-items: flex-end; justify-content: space-between;
+      padding: 0 24px 8px;
+    }
+    .mockup-fullsheet .mu-statusbar-dot {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: rgba(255,255,255,0.15); backdrop-filter: blur(8px);
+    }
+    .mockup-fullsheet .mu-body {
+      flex: 1; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px;
+    }
+    .mockup-fullsheet .mu-headline { display: flex; flex-direction: column; gap: 8px; }
+    .mockup-fullsheet .mu-bullets {
+      display: flex; flex-direction: column; gap: 10px; padding: 16px;
+      background: rgba(255,255,255,0.04); border-radius: 12px;
+    }
+    .mockup-fullsheet .mu-bullet-row {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .mockup-fullsheet .mu-bullet-icon {
+      width: 32px; height: 32px; border-radius: 8px; background: rgba(0,200,150,0.15); flex-shrink: 0;
+    }
+    .mockup-fullsheet .mu-footer {
+      padding: 16px 24px 40px; flex-shrink: 0;
+    }
+    .mockup-fullsheet .mu-cta {
+      width: 100%; height: 48px; border-radius: 24px;
+      background: linear-gradient(135deg, #00c896, #00b4d8);
+    }
+    .mockup-fullsheet .mu-legal {
+      margin-top: 8px; display: flex; flex-direction: column; gap: 4px; align-items: center;
+    }
+
+    /* Half sheet promo mockup */
+    .mockup-halfsheet {
+      width: 100%; height: 100%; position: relative;
+      background: #0a0a0f;
+    }
+    .mockup-halfsheet .mu-backdrop {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.6);
+    }
+    .mockup-halfsheet .mu-sheet {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      height: 580px;
+      background: #111118; border-radius: 20px 20px 0 0;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .mockup-halfsheet .mu-handle {
+      width: 36px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.2);
+      margin: 10px auto 0;
+    }
+    .mockup-halfsheet .mu-hero {
+      width: 100%; height: 220px; overflow: hidden; flex-shrink: 0;
+      background: linear-gradient(135deg, #0d1b2a 0%, #1b2838 100%);
+      margin-top: 8px;
+    }
+    .mockup-halfsheet .mu-hero video,
+    .mockup-halfsheet .mu-hero img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .mockup-halfsheet .mu-hero dotlottie-player {
+      width: 100%; height: 100%; display: block;
+    }
+    .mockup-halfsheet .mu-body {
+      flex: 1; padding: 20px 24px; display: flex; flex-direction: column; gap: 12px;
+    }
+    .mockup-halfsheet .mu-headline { display: flex; flex-direction: column; gap: 8px; }
+    .mockup-halfsheet .mu-footer {
+      padding: 12px 24px 40px; flex-shrink: 0;
+    }
+    .mockup-halfsheet .mu-cta {
+      width: 100%; height: 48px; border-radius: 24px;
+      background: linear-gradient(135deg, #00c896, #00b4d8);
+    }
+
+    /* Banner mockup */
+    .mockup-banner {
+      width: 100%; height: 100%;
+      background: #0a0a0f;
+      display: flex; flex-direction: column;
+    }
+    .mockup-banner .mu-statusbar {
+      height: 54px; flex-shrink: 0;
+    }
+    .mockup-banner .mu-screen-content {
+      flex: 1; padding: 0 16px; display: flex; flex-direction: column; gap: 12px;
+    }
+    .mockup-banner .mu-nav-placeholder {
+      display: flex; gap: 8px; padding: 8px 0; align-items: center;
+    }
+    .mockup-banner .mu-balance-placeholder {
+      padding: 24px 0 16px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .mockup-banner .mu-banner-card {
+      border-radius: 16px; overflow: hidden;
+      background: #111118; border: 1px solid rgba(255,255,255,0.06);
+      display: flex; flex-direction: row; height: 112px;
+    }
+    .mockup-banner .mu-banner-image {
+      width: 112px; height: 112px; flex-shrink: 0; overflow: hidden;
+      background: linear-gradient(135deg, #0d1b2a 0%, #1b2838 100%);
+    }
+    .mockup-banner .mu-banner-image video,
+    .mockup-banner .mu-banner-image img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .mockup-banner .mu-banner-image dotlottie-player {
+      width: 100%; height: 100%; display: block;
+    }
+    .mockup-banner .mu-banner-text {
+      flex: 1; padding: 14px 16px; display: flex; flex-direction: column; justify-content: center; gap: 8px;
+    }
+    .mockup-banner .mu-banner-cta {
+      width: 80px; height: 28px; border-radius: 14px;
+      background: linear-gradient(135deg, #00c896, #00b4d8);
+      margin-top: 4px;
+    }
+    .mockup-banner .mu-list-items {
+      display: flex; flex-direction: column; gap: 10px; margin-top: 8px;
+    }
+    .mockup-banner .mu-list-item {
+      height: 56px; border-radius: 12px; background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+    .mockup-banner .mu-tab-bar {
+      height: 80px; flex-shrink: 0; border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex; align-items: center; justify-content: space-around; padding: 0 8px;
+    }
+    .mockup-banner .mu-tab-dot {
+      width: 24px; height: 24px; border-radius: 6px; background: rgba(255,255,255,0.08);
+    }
+
     .tip-box {
       background: rgba(108,92,231,0.06); border: 1px solid rgba(108,92,231,0.15);
       border-radius: var(--radius); padding: 16px 20px; margin-top: 32px;
@@ -220,6 +422,9 @@
       .preview-area { grid-template-columns: 1fr; }
       .option-row { flex-direction: column; align-items: flex-start; gap: 8px; }
       .option-row .hint { margin-left: 0; }
+      .preview-mode-selector { flex-wrap: wrap; }
+      .phone-frame { transform: scale(0.7); }
+      .phone-wrapper { width: 275px; }
     }
   </style>
 </head>
@@ -291,7 +496,23 @@
         <div class="size new" id="result-compressed">-</div>
       </div>
     </div>
+    <div class="preview-mode-selector" id="preview-mode-selector">
+      <button class="preview-mode-btn active" data-mode="raw">Side by side</button>
+      <button class="preview-mode-btn" data-mode="fullsheet">Full Sheet</button>
+      <button class="preview-mode-btn" data-mode="halfsheet">Half Sheet</button>
+      <button class="preview-mode-btn" data-mode="banner">Banner</button>
+    </div>
+
     <div class="preview-area" id="preview-area"></div>
+
+    <div class="insitu-container" id="insitu-container" style="display:none;">
+      <div class="phone-wrapper">
+        <div class="phone-frame">
+          <div class="phone-notch"></div>
+          <div class="phone-screen" id="phone-screen"></div>
+        </div>
+      </div>
+    </div>
 
     <div class="retry-section" id="retry-section">
       <p><strong>Not quite right?</strong> Try a different compression level &mdash; no need to re-upload.</p>
@@ -678,7 +899,39 @@ function renderRetryButtons(type, currentPreset) {
   });
 }
 
+// ---- Preview modes ----
+state.previewMode = 'raw';
+
+document.querySelectorAll('.preview-mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.preview-mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.previewMode = btn.dataset.mode;
+    if (state.fileId) renderCurrentPreview();
+  });
+});
+
+function renderCurrentPreview() {
+  const mode = state.previewMode;
+  const area = $('preview-area');
+  const insitu = $('insitu-container');
+
+  if (mode === 'raw') {
+    area.style.display = '';
+    insitu.style.display = 'none';
+    renderRawPreviews(state.assetType, state.fileId);
+  } else {
+    area.style.display = 'none';
+    insitu.style.display = '';
+    renderMockup(mode, state.assetType, state.fileId);
+  }
+}
+
 function renderPreviews(type, fileId) {
+  renderCurrentPreview();
+}
+
+function renderRawPreviews(type, fileId) {
   const area = $('preview-area');
   const ts = Date.now();
   const origUrl = `/api/preview/${fileId}?t=${ts}`;
@@ -696,6 +949,140 @@ function renderPreviews(type, fileId) {
     area.innerHTML = `
       <div class="preview-box"><div class="preview-label">Original</div><dotlottie-player src="${origUrl}" autoplay loop style="width:100%;background:#000;"></dotlottie-player></div>
       <div class="preview-box"><div class="preview-label">Compressed</div><dotlottie-player src="${compUrl}" autoplay loop style="width:100%;background:#000;"></dotlottie-player></div>`;
+  }
+}
+
+function assetElement(type, url) {
+  if (type === 'video') return `<video src="${url}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:cover;display:block;"></video>`;
+  if (type === 'image') return `<img src="${url}" style="width:100%;height:100%;object-fit:cover;display:block;" />`;
+  if (type === 'lottie') return `<dotlottie-player src="${url}" autoplay loop style="width:100%;height:100%;display:block;background:transparent;"></dotlottie-player>`;
+  return '';
+}
+
+function renderMockup(mode, type, fileId) {
+  const screen = $('phone-screen');
+  const ts = Date.now();
+  const compUrl = `/api/preview/${fileId}/compressed?t=${ts}`;
+  const asset = assetElement(type, compUrl);
+
+  if (mode === 'fullsheet') {
+    screen.innerHTML = `
+      <div class="mockup-fullsheet">
+        <div class="mu-hero">
+          <div class="mu-statusbar">
+            <div class="mu-statusbar-dot"></div>
+            <div class="mu-statusbar-dot"></div>
+          </div>
+          ${asset}
+          <div class="mu-hero-gradient"></div>
+        </div>
+        <div class="mu-body">
+          <div class="mu-headline">
+            <div class="mu-bar-bright" style="width:75%;height:22px;"></div>
+            <div class="mu-bar-bright" style="width:50%;height:22px;"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:5px;">
+            <div class="mu-bar" style="width:92%;height:13px;"></div>
+            <div class="mu-bar" style="width:80%;height:13px;"></div>
+          </div>
+          <div class="mu-bullets">
+            <div class="mu-bullet-row">
+              <div class="mu-bullet-icon"></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+                <div class="mu-bar" style="width:60%;height:13px;"></div>
+                <div class="mu-bar-dim" style="width:85%;height:10px;"></div>
+              </div>
+            </div>
+            <div class="mu-bullet-row">
+              <div class="mu-bullet-icon"></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+                <div class="mu-bar" style="width:50%;height:13px;"></div>
+                <div class="mu-bar-dim" style="width:75%;height:10px;"></div>
+              </div>
+            </div>
+            <div class="mu-bullet-row">
+              <div class="mu-bullet-icon"></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+                <div class="mu-bar" style="width:70%;height:13px;"></div>
+                <div class="mu-bar-dim" style="width:65%;height:10px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mu-footer">
+          <div class="mu-cta"></div>
+          <div class="mu-legal">
+            <div class="mu-bar-dim" style="width:70%;height:8px;margin-top:6px;"></div>
+            <div class="mu-bar-dim" style="width:50%;height:8px;"></div>
+          </div>
+        </div>
+      </div>`;
+  } else if (mode === 'halfsheet') {
+    screen.innerHTML = `
+      <div class="mockup-halfsheet">
+        <div class="mu-backdrop"></div>
+        <div class="mu-sheet">
+          <div class="mu-handle"></div>
+          <div class="mu-hero">${asset}</div>
+          <div class="mu-body">
+            <div class="mu-headline">
+              <div class="mu-bar-bright" style="width:80%;height:20px;"></div>
+              <div class="mu-bar-bright" style="width:55%;height:20px;"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px;">
+              <div class="mu-bar" style="width:95%;height:12px;"></div>
+              <div class="mu-bar" style="width:85%;height:12px;"></div>
+              <div class="mu-bar" style="width:60%;height:12px;"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px;margin-top:4px;">
+              <div class="mu-bar" style="width:90%;height:12px;"></div>
+              <div class="mu-bar" style="width:70%;height:12px;"></div>
+            </div>
+          </div>
+          <div class="mu-footer">
+            <div class="mu-cta"></div>
+          </div>
+        </div>
+      </div>`;
+  } else if (mode === 'banner') {
+    screen.innerHTML = `
+      <div class="mockup-banner">
+        <div class="mu-statusbar"></div>
+        <div class="mu-screen-content">
+          <div class="mu-nav-placeholder">
+            <div class="mu-bar" style="width:28px;height:28px;border-radius:50%;"></div>
+            <div class="mu-bar" style="width:100px;height:16px;"></div>
+            <div style="flex:1;"></div>
+            <div class="mu-bar" style="width:28px;height:28px;border-radius:50%;"></div>
+          </div>
+          <div class="mu-balance-placeholder">
+            <div class="mu-bar-dim" style="width:100px;height:12px;"></div>
+            <div class="mu-bar-bright" style="width:160px;height:32px;"></div>
+          </div>
+          <div class="mu-banner-card">
+            <div class="mu-banner-image">${asset}</div>
+            <div class="mu-banner-text">
+              <div class="mu-bar-bright" style="width:90%;height:14px;"></div>
+              <div class="mu-bar" style="width:100%;height:10px;"></div>
+              <div class="mu-bar" style="width:70%;height:10px;"></div>
+              <div class="mu-banner-cta"></div>
+            </div>
+          </div>
+          <div class="mu-list-items">
+            <div class="mu-list-item"></div>
+            <div class="mu-list-item"></div>
+            <div class="mu-list-item"></div>
+            <div class="mu-list-item"></div>
+          </div>
+        </div>
+        <div class="mu-tab-bar">
+          <div class="mu-tab-dot"></div>
+          <div class="mu-tab-dot"></div>
+          <div class="mu-tab-dot"></div>
+          <div class="mu-tab-dot"></div>
+          <div class="mu-tab-dot"></div>
+        </div>
+      </div>`;
   }
 }
 
