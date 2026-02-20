@@ -33,9 +33,9 @@ ASSET_TYPES = {
 }
 
 VIDEO_PRESETS = {
-    "light":      {"crf": 23, "preset": "fast"},
-    "balanced":   {"crf": 27, "preset": "fast"},
-    "aggressive": {"crf": 31, "preset": "fast"},
+    "light":      {"crf": 23, "preset": "veryfast"},
+    "balanced":   {"crf": 27, "preset": "veryfast"},
+    "aggressive": {"crf": 31, "preset": "veryfast"},
 }
 
 LOTTIE_PRESETS = {
@@ -102,7 +102,7 @@ def _auto_scale_filter(width: int, height: int, max_pixels: int) -> str | None:
 
 def compress_video(
     input_path: str, output_path: str, *,
-    crf: int = 27, preset: str = "fast",
+    crf: int = 27, preset: str = "veryfast",
     scale: float | None = None, strip_audio: bool = True, max_fps: int | None = None,
 ) -> dict:
     probe = subprocess.run(
@@ -125,10 +125,9 @@ def compress_video(
         vf_filters.append(f"fps={max_fps}")
 
     cmd = [
-        "ffmpeg", "-y", "-threads", "2", "-i", input_path,
+        "ffmpeg", "-y", "-i", input_path,
         "-c:v", "libx264", "-crf", str(crf), "-preset", preset,
-        "-pix_fmt", "yuv420p",
-        "-threads", "2",
+        "-tune", "animation", "-pix_fmt", "yuv420p",
     ]
     if vf_filters:
         cmd.extend(["-vf", ",".join(vf_filters)])
