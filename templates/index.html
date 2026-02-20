@@ -184,6 +184,28 @@
     }
     .start-over-btn:hover { border-color: var(--text-muted); color: var(--text); }
 
+    /* Retry section */
+    .retry-section {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px; margin-bottom: 20px; text-align: center;
+    }
+    .retry-section p {
+      font-size: 14px; color: var(--text-muted); margin-bottom: 14px;
+    }
+    .retry-section p strong { color: var(--text); }
+    .retry-buttons { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .retry-btn {
+      padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s; border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+    }
+    .retry-btn:hover { border-color: var(--accent); background: rgba(108,92,231,0.08); }
+    .retry-btn.active {
+      border-color: var(--accent); background: rgba(108,92,231,0.12); color: var(--accent);
+      cursor: default;
+    }
+    .retry-btn .retry-label { display: block; margin-bottom: 2px; }
+    .retry-btn .retry-hint { display: block; font-size: 11px; font-weight: 400; color: var(--text-muted); }
+
     .tip-box {
       background: rgba(108,92,231,0.06); border: 1px solid rgba(108,92,231,0.15);
       border-radius: var(--radius); padding: 16px 20px; margin-top: 32px;
@@ -270,6 +292,12 @@
       </div>
     </div>
     <div class="preview-area" id="preview-area"></div>
+
+    <div class="retry-section" id="retry-section">
+      <p><strong>Not quite right?</strong> Try a different compression level &mdash; no need to re-upload.</p>
+      <div class="retry-buttons" id="retry-buttons"></div>
+    </div>
+
     <button class="download-btn" id="download-btn">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="20" height="20">
         <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -566,15 +594,14 @@ $('advanced-toggle').addEventListener('click', () => {
 });
 
 // ---- Compress ----
-$('compress-btn').addEventListener('click', async () => {
+async function runCompress(presetOverride) {
   if (!state.fileId) return;
-  const btn = $('compress-btn');
-  btn.disabled = true;
-  btn.innerHTML = '<div class="spinner"></div> Compressing...';
+
+  if (presetOverride) state.preset = presetOverride;
 
   const body = { file_id: state.fileId, asset_type: state.assetType, preset: state.preset };
 
-  if (state.advancedOpen) {
+  if (!presetOverride && state.advancedOpen) {
     const type = state.assetType;
     if (type === 'video') {
       body.crf = intVal('adv-crf');
@@ -595,23 +622,61 @@ $('compress-btn').addEventListener('click', async () => {
     }
   }
 
-  try {
-    const res = await fetch('/api/compress', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    const data = await res.json();
-    if (!res.ok) { alert(data.error || 'Compression failed'); return; }
+  const res = await fetch('/api/compress', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Compression failed');
 
-    $('result-original').textContent = formatSize(data.original_size);
-    $('result-compressed').textContent = formatSize(data.compressed_size);
-    $('reduction-badge').textContent = data.reduction_pct + '% smaller';
+  $('result-original').textContent = formatSize(data.original_size);
+  $('result-compressed').textContent = formatSize(data.compressed_size);
+  $('reduction-badge').textContent = data.reduction_pct + '% smaller';
 
-    renderPreviews(state.assetType, state.fileId);
+  renderPreviews(state.assetType, state.fileId);
+  renderRetryButtons(state.assetType, state.preset);
 
-    $('download-btn').onclick = () => { window.location.href = `/api/download/${state.fileId}`; };
-    $('results').classList.add('visible');
-    $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  } catch { alert('Compression failed. Please try again.'); }
+  $('download-btn').onclick = () => { window.location.href = `/api/download/${state.fileId}`; };
+  $('results').classList.add('visible');
+  $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+$('compress-btn').addEventListener('click', async () => {
+  const btn = $('compress-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Compressing...';
+  try { await runCompress(); }
+  catch (e) { alert(e.message); }
   finally { btn.disabled = false; btn.innerHTML = 'Compress'; }
 });
+
+const RETRY_HINTS = {
+  light: 'Better quality, larger file',
+  balanced: 'Good balance of quality & size',
+  aggressive: 'Smallest file, more compression',
+};
+const RETRY_LABELS = { light: 'Light', balanced: 'Balanced', aggressive: 'Maximum' };
+
+function renderRetryButtons(type, currentPreset) {
+  const container = $('retry-buttons');
+  const allPresets = ['light', 'balanced', 'aggressive'];
+
+  container.innerHTML = allPresets.map(key => `
+    <button class="retry-btn ${key === currentPreset ? 'active' : ''}" data-preset="${key}" ${key === currentPreset ? 'disabled' : ''}>
+      <span class="retry-label">${RETRY_LABELS[key]}</span>
+      <span class="retry-hint">${key === currentPreset ? 'Current' : RETRY_HINTS[key]}</span>
+    </button>
+  `).join('');
+
+  container.querySelectorAll('.retry-btn:not(.active)').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      container.querySelectorAll('.retry-btn').forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
+      btn.innerHTML = '<span class="retry-label">Compressing...</span>';
+      try { await runCompress(btn.dataset.preset); }
+      catch (e) { alert(e.message); }
+      finally {
+        container.querySelectorAll('.retry-btn').forEach(b => { b.disabled = false; b.style.opacity = ''; });
+      }
+    });
+  });
+}
 
 function renderPreviews(type, fileId) {
   const area = $('preview-area');
