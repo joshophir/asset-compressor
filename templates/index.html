@@ -971,7 +971,7 @@ async function runCompress(presetOverride) {
   const text = await res.text();
   let data;
   try { data = JSON.parse(text); } catch {
-    throw new Error('Server returned an invalid response. The file may be too large for the hosted server — try a more aggressive preset or a smaller file.');
+    throw new Error('The server ran out of memory or timed out compressing this file. Try the "Maximum" preset (uses less memory), or try again in a moment — the server may have been restarting.');
   }
   if (!res.ok) throw new Error(data.error || 'Compression failed');
 

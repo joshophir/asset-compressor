@@ -13,4 +13,4 @@ COPY . .
 
 EXPOSE 5050
 
-CMD ["gunicorn", "--bind", "0.0.0.0:5050", "--timeout", "120", "--workers", "2", "app:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5050", "--timeout", "300", "--workers", "1", "--threads", "2", "app:app"]

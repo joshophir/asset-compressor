@@ -4,6 +4,7 @@ import math
 import os
 import subprocess
 import tempfile
+import time
 import uuid
 import zipfile
 from pathlib import Path
@@ -17,6 +18,9 @@ app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
 UPLOAD_DIR = Path(tempfile.gettempdir()) / "asset_compressor"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
+MAX_UPLOAD_AGE_SECS = 3600
+MAX_VIDEO_PIXELS = 1920 * 1080
+
 ASSET_TYPES = {
     ".mp4": "video",
     ".mov": "video",
@@ -29,9 +33,9 @@ ASSET_TYPES = {
 }
 
 VIDEO_PRESETS = {
-    "light":      {"crf": 23, "preset": "medium"},
-    "balanced":   {"crf": 27, "preset": "medium"},
-    "aggressive": {"crf": 31, "preset": "medium"},
+    "light":      {"crf": 23, "preset": "fast"},
+    "balanced":   {"crf": 27, "preset": "fast"},
+    "aggressive": {"crf": 31, "preset": "fast"},
 }
 
 LOTTIE_PRESETS = {
@@ -85,21 +89,46 @@ def analyze_video(file_path: str) -> dict:
     return info
 
 
+def _auto_scale_filter(width: int, height: int, max_pixels: int) -> str | None:
+    """Return an FFmpeg scale filter if the input exceeds max_pixels."""
+    pixels = width * height
+    if pixels <= max_pixels:
+        return None
+    ratio = math.sqrt(max_pixels / pixels)
+    new_w = math.floor(width * ratio / 2) * 2
+    new_h = math.floor(height * ratio / 2) * 2
+    return f"scale={new_w}:{new_h}:flags=lanczos"
+
+
 def compress_video(
     input_path: str, output_path: str, *,
-    crf: int = 27, preset: str = "slow",
+    crf: int = 27, preset: str = "fast",
     scale: float | None = None, strip_audio: bool = True, max_fps: int | None = None,
 ) -> dict:
+    probe = subprocess.run(
+        ["ffprobe", "-v", "quiet", "-print_format", "json",
+         "-show_streams", "-select_streams", "v:0", input_path],
+        capture_output=True, text=True, check=True,
+    )
+    vs = json.loads(probe.stdout).get("streams", [{}])[0]
+    src_w, src_h = int(vs.get("width", 0)), int(vs.get("height", 0))
+
     vf_filters = []
+
+    auto_scale = _auto_scale_filter(src_w, src_h, MAX_VIDEO_PIXELS)
+    if auto_scale:
+        vf_filters.append(auto_scale)
+
     if scale and scale < 1.0:
         vf_filters.append(f"scale=iw*{scale}:ih*{scale}:flags=lanczos")
     if max_fps:
         vf_filters.append(f"fps={max_fps}")
 
     cmd = [
-        "ffmpeg", "-y", "-i", input_path,
+        "ffmpeg", "-y", "-threads", "2", "-i", input_path,
         "-c:v", "libx264", "-crf", str(crf), "-preset", preset,
         "-pix_fmt", "yuv420p",
+        "-threads", "2",
     ]
     if vf_filters:
         cmd.extend(["-vf", ",".join(vf_filters)])
@@ -339,6 +368,21 @@ def compress_lottie(
 
 
 # ---------------------------------------------------------------------------
+# Housekeeping
+# ---------------------------------------------------------------------------
+
+def cleanup_old_files():
+    """Remove uploaded/compressed files older than MAX_UPLOAD_AGE_SECS."""
+    now = time.time()
+    for f in UPLOAD_DIR.iterdir():
+        try:
+            if now - f.stat().st_mtime > MAX_UPLOAD_AGE_SECS:
+                f.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+
+# ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
 
@@ -349,6 +393,8 @@ def index():
 
 @app.route("/api/upload", methods=["POST"])
 def upload():
+    cleanup_old_files()
+
     if "file" not in request.files:
         return jsonify({"error": "No file provided"}), 400
 
