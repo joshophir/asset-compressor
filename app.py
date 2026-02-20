@@ -145,12 +145,10 @@ def compress_video(
 
 
 def extract_frame0(compressed_path: str, frame0_path: str) -> int:
-    """Extract the first frame from a compressed video as a single-frame MP4."""
+    """Extract the first frame from a compressed video as a PNG image."""
     cmd = [
         "ffmpeg", "-y", "-i", compressed_path,
-        "-frames:v", "1", "-c:v", "libx264", "-qp", "0",
-        "-pix_fmt", "yuv420p", "-an",
-        "-movflags", "+faststart", frame0_path,
+        "-frames:v", "1", "-update", "1", frame0_path,
     ]
     subprocess.run(cmd, capture_output=True, text=True, check=True)
     return os.path.getsize(frame0_path)
@@ -462,7 +460,7 @@ def compress():
     try:
         if asset_type == "video":
             output_path = str(UPLOAD_DIR / f"{file_id}_compressed.mp4")
-            frame0_path = str(UPLOAD_DIR / f"{file_id}_frame0.mp4")
+            frame0_path = str(UPLOAD_DIR / f"{file_id}_frame0.png")
             p = VIDEO_PRESETS.get(preset_name, VIDEO_PRESETS["balanced"])
             result = compress_video(
                 input_path, output_path,
@@ -521,12 +519,12 @@ def download(file_id):
 
 @app.route("/api/download/<file_id>/frame0")
 def download_frame0(file_id):
-    frame0 = UPLOAD_DIR / f"{file_id}_frame0.mp4"
+    frame0 = UPLOAD_DIR / f"{file_id}_frame0.png"
     if not frame0.exists():
         return jsonify({"error": "Frame 0 file not found"}), 404
     originals = [m for m in UPLOAD_DIR.glob(f"{file_id}.*") if "_compressed" not in m.name and "_frame0" not in m.name]
     stem = originals[0].stem if originals else "video"
-    return send_file(str(frame0), as_attachment=True, download_name=f"{stem}_frame0.mp4")
+    return send_file(str(frame0), as_attachment=True, download_name=f"{stem}_frame0.png")
 
 
 @app.route("/api/preview/<file_id>")

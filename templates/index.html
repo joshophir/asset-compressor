@@ -1002,7 +1002,7 @@ async function runCompress(presetOverride) {
   const f0btn = $('frame0-btn');
   if (data.frame0_size != null) {
     f0btn.style.display = '';
-    $('frame0-btn-text').innerHTML = `Download Frame 0 <span class="frame0-size">(${formatSize(data.frame0_size)})</span>`;
+    $('frame0-btn-text').innerHTML = `Download Frame 0 (PNG) <span class="frame0-size">${formatSize(data.frame0_size)}</span>`;
     f0btn.onclick = () => { window.location.href = `/api/download/${state.fileId}/frame0`; };
   } else {
     f0btn.style.display = 'none';
