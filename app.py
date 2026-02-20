@@ -144,6 +144,18 @@ def compress_video(
     return {"original_size": orig, "compressed_size": new, "reduction_pct": round((1 - new / orig) * 100, 1)}
 
 
+def extract_frame0(compressed_path: str, frame0_path: str) -> int:
+    """Extract the first frame from a compressed video as a single-frame MP4."""
+    cmd = [
+        "ffmpeg", "-y", "-i", compressed_path,
+        "-frames:v", "1", "-c:v", "libx264", "-qp", "0",
+        "-pix_fmt", "yuv420p", "-an",
+        "-movflags", "+faststart", frame0_path,
+    ]
+    subprocess.run(cmd, capture_output=True, text=True, check=True)
+    return os.path.getsize(frame0_path)
+
+
 # ---------------------------------------------------------------------------
 # Image helpers
 # ---------------------------------------------------------------------------
@@ -450,6 +462,7 @@ def compress():
     try:
         if asset_type == "video":
             output_path = str(UPLOAD_DIR / f"{file_id}_compressed.mp4")
+            frame0_path = str(UPLOAD_DIR / f"{file_id}_frame0.mp4")
             p = VIDEO_PRESETS.get(preset_name, VIDEO_PRESETS["balanced"])
             result = compress_video(
                 input_path, output_path,
@@ -459,6 +472,8 @@ def compress():
                 strip_audio=data.get("strip_audio", True),
                 max_fps=data.get("max_fps"),
             )
+            frame0_size = extract_frame0(output_path, frame0_path)
+            result["frame0_size"] = frame0_size
 
         elif asset_type == "image":
             fmt = data.get("fmt", IMAGE_PRESETS.get(preset_name, IMAGE_PRESETS["balanced"])["fmt"])
@@ -498,10 +513,20 @@ def download(file_id):
         matches = list(UPLOAD_DIR.glob(pattern))
         if matches:
             out = matches[0]
-            originals = [m for m in UPLOAD_DIR.glob(f"{file_id}.*") if "_compressed" not in m.name]
+            originals = [m for m in UPLOAD_DIR.glob(f"{file_id}.*") if "_compressed" not in m.name and "_frame0" not in m.name]
             dl_name = f"{originals[0].stem}_compressed{out.suffix}" if originals else f"compressed{out.suffix}"
             return send_file(str(out), as_attachment=True, download_name=dl_name)
     return jsonify({"error": "Compressed file not found"}), 404
+
+
+@app.route("/api/download/<file_id>/frame0")
+def download_frame0(file_id):
+    frame0 = UPLOAD_DIR / f"{file_id}_frame0.mp4"
+    if not frame0.exists():
+        return jsonify({"error": "Frame 0 file not found"}), 404
+    originals = [m for m in UPLOAD_DIR.glob(f"{file_id}.*") if "_compressed" not in m.name and "_frame0" not in m.name]
+    stem = originals[0].stem if originals else "video"
+    return send_file(str(frame0), as_attachment=True, download_name=f"{stem}_frame0.mp4")
 
 
 @app.route("/api/preview/<file_id>")
