@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Asset Compressor</title>
+  <script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs" type="module"></script>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface-2: #242836;
+      --border: #2e3345;
+      --text: #e4e6ef;
+      --text-muted: #8b8fa3;
+      --accent: #6c5ce7;
+      --accent-hover: #7c6ef7;
+      --success: #00b894;
+      --warning: #fdcb6e;
+      --danger: #e17055;
+      --radius: 12px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; line-height: 1.6;
+    }
+    .container { max-width: 800px; margin: 0 auto; padding: 40px 24px; }
+    header { text-align: center; margin-bottom: 40px; }
+    header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px; }
+    header p { color: var(--text-muted); font-size: 15px; }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 2px dashed var(--border); border-radius: var(--radius);
+      padding: 48px 32px; text-align: center; cursor: pointer;
+      transition: all 0.2s; background: var(--surface);
+    }
+    .drop-zone:hover, .drop-zone.dragover { border-color: var(--accent); background: rgba(108,92,231,0.05); }
+    .drop-zone svg { width: 48px; height: 48px; color: var(--text-muted); margin-bottom: 16px; }
+    .drop-zone h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+    .drop-zone p { color: var(--text-muted); font-size: 14px; }
+    .drop-zone .browse-link { color: var(--accent); text-decoration: underline; cursor: pointer; }
+    .formats { display: inline-flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; justify-content: center; }
+    .formats span { background: var(--surface-2); padding: 2px 10px; border-radius: 20px; font-size: 12px; color: var(--text-muted); font-weight: 500; }
+    #file-input { display: none; }
+
+    /* File info */
+    .file-info {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px 24px; margin-top: 24px; display: none;
+    }
+    .file-info.visible { display: block; }
+    .file-info-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .file-info-header h3 { font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; }
+    .file-type-badge {
+      display: inline-block; padding: 2px 10px; border-radius: 20px;
+      font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .file-type-badge.video { background: rgba(108,92,231,0.15); color: var(--accent); }
+    .file-type-badge.image { background: rgba(0,184,148,0.15); color: var(--success); }
+    .file-type-badge.lottie { background: rgba(253,203,110,0.15); color: var(--warning); }
+    .remove-btn {
+      background: none; border: none; color: var(--text-muted); cursor: pointer;
+      font-size: 13px; padding: 4px 8px; border-radius: 6px; transition: all 0.15s;
+    }
+    .remove-btn:hover { color: var(--danger); background: rgba(225,112,85,0.1); }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
+    .stat { background: var(--surface-2); border-radius: 8px; padding: 12px; }
+    .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 4px; }
+    .stat-value { font-size: 18px; font-weight: 700; }
+
+    /* Alpha notice */
+    .alpha-notice {
+      margin-top: 12px; padding: 10px 14px; border-radius: 8px;
+      font-size: 13px; line-height: 1.5; display: none;
+    }
+    .alpha-notice.safe {
+      background: rgba(0,184,148,0.08); border: 1px solid rgba(0,184,148,0.2); color: var(--success);
+    }
+    .alpha-notice.warn {
+      background: rgba(253,203,110,0.08); border: 1px solid rgba(253,203,110,0.2); color: var(--warning);
+    }
+    .alpha-notice.visible { display: block; }
+
+    /* Options */
+    .options-section { margin-top: 24px; display: none; }
+    .options-section.visible { display: block; }
+    .options-section h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+    .presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+    .preset-card {
+      background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius);
+      padding: 16px; cursor: pointer; transition: all 0.2s; text-align: center;
+    }
+    .preset-card:hover { border-color: var(--accent); }
+    .preset-card.selected { border-color: var(--accent); background: rgba(108,92,231,0.08); }
+    .preset-card h4 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+    .preset-card p { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+    .preset-card .badge { display: inline-block; margin-top: 8px; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge.green { background: rgba(0,184,148,0.15); color: var(--success); }
+    .badge.yellow { background: rgba(253,203,110,0.15); color: var(--warning); }
+    .badge.orange { background: rgba(225,112,85,0.15); color: var(--danger); }
+
+    /* Advanced */
+    .advanced-toggle {
+      background: none; border: none; color: var(--text-muted); cursor: pointer;
+      font-size: 13px; padding: 4px 0; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 6px; transition: color 0.15s;
+    }
+    .advanced-toggle:hover { color: var(--text); }
+    .advanced-toggle svg { width: 14px; height: 14px; transition: transform 0.2s; }
+    .advanced-toggle.open svg { transform: rotate(90deg); }
+    .advanced-options {
+      display: none; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px; margin-bottom: 20px;
+    }
+    .advanced-options.visible { display: block; }
+    .option-row { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+    .option-row:last-child { margin-bottom: 0; }
+    .option-row label { font-size: 14px; font-weight: 500; min-width: 120px; }
+    .option-row .hint { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+    input[type="range"] { flex: 1; accent-color: var(--accent); height: 6px; min-width: 120px; }
+    .range-value { font-size: 14px; font-weight: 600; min-width: 36px; text-align: right; }
+    .checkbox-row { display: flex; align-items: center; gap: 10px; }
+    .checkbox-row input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; }
+    select {
+      background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
+      border-radius: 6px; padding: 6px 12px; font-size: 14px; cursor: pointer;
+    }
+
+    /* Buttons */
+    .compress-btn {
+      width: 100%; padding: 14px 32px; border: none; border-radius: var(--radius);
+      background: var(--accent); color: white; font-size: 16px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .compress-btn:hover { background: var(--accent-hover); }
+    .compress-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .compress-btn .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3); border-top-color: white;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Results */
+    .results { margin-top: 24px; display: none; }
+    .results.visible { display: block; }
+    .results h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+    .comparison { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; margin-bottom: 20px; }
+    .comparison-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; text-align: center; }
+    .comparison-card .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 8px; }
+    .comparison-card .size { font-size: 28px; font-weight: 800; }
+    .comparison-card .size.new { color: var(--success); }
+    .arrow { font-size: 24px; color: var(--text-muted); }
+    .reduction-badge {
+      display: inline-block; background: rgba(0,184,148,0.15); color: var(--success);
+      padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 700; margin-bottom: 20px;
+    }
+
+    /* Preview */
+    .preview-area { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .preview-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .preview-box .preview-label {
+      padding: 10px 16px; font-size: 12px; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--text-muted); border-bottom: 1px solid var(--border); font-weight: 600;
+    }
+    .preview-box video, .preview-box img { width: 100%; display: block; background: #000; }
+    .preview-box dotlottie-player { width: 100%; display: block; background: #000; }
+
+    .download-btn {
+      width: 100%; padding: 14px 32px; border: none; border-radius: var(--radius);
+      background: var(--success); color: white; font-size: 16px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .download-btn:hover { opacity: 0.9; }
+    .start-over-btn {
+      width: 100%; padding: 12px 32px; border: 1px solid var(--border);
+      border-radius: var(--radius); background: transparent; color: var(--text-muted);
+      font-size: 14px; cursor: pointer; transition: all 0.15s; margin-top: 12px;
+    }
+    .start-over-btn:hover { border-color: var(--text-muted); color: var(--text); }
+
+    .tip-box {
+      background: rgba(108,92,231,0.06); border: 1px solid rgba(108,92,231,0.15);
+      border-radius: var(--radius); padding: 16px 20px; margin-top: 32px;
+      font-size: 13px; color: var(--text-muted); line-height: 1.6;
+    }
+    .tip-box strong { color: var(--text); }
+
+    @media (max-width: 640px) {
+      .presets { grid-template-columns: 1fr; }
+      .comparison { grid-template-columns: 1fr; gap: 8px; }
+      .arrow { transform: rotate(90deg); text-align: center; }
+      .preview-area { grid-template-columns: 1fr; }
+      .option-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .option-row .hint { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Asset Compressor</h1>
+    <p>Compress videos, Lottie animations, and images for the mobile app.</p>
+  </header>
+
+  <!-- Upload -->
+  <div class="drop-zone" id="drop-zone">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+    </svg>
+    <h3>Drop your file here</h3>
+    <p>or <span class="browse-link">browse files</span></p>
+    <div class="formats">
+      <span>MP4</span><span>MOV</span><span>WebM</span>
+      <span>Lottie</span>
+      <span>PNG</span><span>JPG</span><span>WebP</span>
+    </div>
+    <input type="file" id="file-input" accept=".mp4,.mov,.webm,.lottie,.png,.jpg,.jpeg,.webp" />
+  </div>
+
+  <!-- File info -->
+  <div class="file-info" id="file-info">
+    <div class="file-info-header">
+      <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+        <h3 id="file-name">-</h3>
+        <span class="file-type-badge" id="file-type-badge">-</span>
+      </div>
+      <button class="remove-btn" id="remove-btn">Remove</button>
+    </div>
+    <div class="stats-grid" id="stats-grid"></div>
+    <div class="alpha-notice" id="alpha-notice"></div>
+  </div>
+
+  <!-- Options -->
+  <div class="options-section" id="options-section">
+    <h3>Choose compression level</h3>
+    <div class="presets" id="presets-container"></div>
+
+    <button class="advanced-toggle" id="advanced-toggle">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+      </svg>
+      Advanced options
+    </button>
+    <div class="advanced-options" id="advanced-options"></div>
+
+    <button class="compress-btn" id="compress-btn">Compress</button>
+  </div>
+
+  <!-- Results -->
+  <div class="results" id="results">
+    <h3>Compression complete</h3>
+    <div style="text-align:center; margin-bottom:16px;">
+      <span class="reduction-badge" id="reduction-badge">-</span>
+    </div>
+    <div class="comparison">
+      <div class="comparison-card">
+        <div class="label">Original</div>
+        <div class="size" id="result-original">-</div>
+      </div>
+      <div class="arrow">&#8594;</div>
+      <div class="comparison-card">
+        <div class="label">Compressed</div>
+        <div class="size new" id="result-compressed">-</div>
+      </div>
+    </div>
+    <div class="preview-area" id="preview-area"></div>
+    <button class="download-btn" id="download-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="20" height="20">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+      </svg>
+      Download Compressed File
+    </button>
+    <button class="start-over-btn" id="start-over-btn">Start over with a new file</button>
+  </div>
+
+  <div class="tip-box" id="tip-box"></div>
+</div>
+
+<script>
+const state = { fileId: null, assetType: null, preset: 'balanced', advancedOpen: false, fileData: null };
+
+const $ = id => document.getElementById(id);
+
+const PRESET_CONFIGS = {
+  video: [
+    { key: 'light', title: 'Light', desc: 'Minimal quality loss. For hero placements on high-traffic screens.', badge: 'Highest quality', badgeClass: 'green' },
+    { key: 'balanced', title: 'Balanced', desc: 'Great size reduction with negligible visual difference.', badge: 'Recommended', badgeClass: 'yellow' },
+    { key: 'aggressive', title: 'Maximum', desc: 'Smallest file size. Best for small or deep-screen placements.', badge: 'Smallest file', badgeClass: 'orange' },
+  ],
+  image: [
+    { key: 'light', title: 'Light', desc: 'Near-lossless. Best for large hero images on high-traffic screens.', badge: 'Highest quality', badgeClass: 'green' },
+    { key: 'balanced', title: 'Balanced', desc: 'Great balance of quality and size. Works for most images.', badge: 'Recommended', badgeClass: 'yellow' },
+    { key: 'aggressive', title: 'Maximum', desc: 'Prioritize size. Good for thumbnails and deep screens.', badge: 'Smallest file', badgeClass: 'orange' },
+  ],
+  lottie: [
+    { key: 'light', title: 'Light', desc: 'Recompress frames at high quality. Keeps original frame rate.', badge: 'Highest quality', badgeClass: 'green' },
+    { key: 'balanced', title: 'Balanced', desc: 'Recompress + reduce to 15fps. Great for most animations.', badge: 'Recommended', badgeClass: 'yellow' },
+    { key: 'aggressive', title: 'Maximum', desc: 'Heavy recompression, 12fps, and 75% scale. Smallest file.', badge: 'Smallest file', badgeClass: 'orange' },
+  ],
+};
+
+const TIPS = {
+  video: `<strong>Video tips:</strong><br/>
+    &bull; <strong>Balanced</strong> is recommended for most animations and typically cuts file size by 70-85%.<br/>
+    &bull; Use <strong>Light</strong> for hero placements on the Home screen or other high-traffic areas.<br/>
+    &bull; Use <strong>Maximum</strong> for animations deeper in the app (L3+ screens, carousels).<br/>
+    &bull; Animations usually don't need audio &mdash; it's stripped by default.`,
+  image: `<strong>Image tips:</strong><br/>
+    &bull; PNG images with no transparency are automatically converted to JPEG for big savings.<br/>
+    &bull; If your image needs transparency, use WebP format in the advanced options.<br/>
+    &bull; Always use the <strong>2x export</strong> from your design tool &mdash; 1x looks blurry on modern phones.`,
+  lottie: `<strong>Lottie tips:</strong><br/>
+    &bull; Most Lotties from Creative are image sequences (raster frames inside a zip). That's what this tool optimizes.<br/>
+    &bull; <strong>Balanced</strong> recompresses frames to WebP and drops to 15fps &mdash; usually 60-80% smaller.<br/>
+    &bull; If the Lottie is a true vector animation (no embedded images), it's already small and won't benefit much from recompression.<br/>
+    &bull; Preview at <a href="https://lottiefiles.com" target="_blank" style="color:var(--accent)">lottiefiles.com</a> after downloading.`,
+};
+
+// ---- Upload ----
+const dropZone = $('drop-zone');
+const fileInput = $('file-input');
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('dragover'); if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', () => { if (fileInput.files.length) handleFile(fileInput.files[0]); });
+$('remove-btn').addEventListener('click', resetAll);
+$('start-over-btn').addEventListener('click', resetAll);
+
+function resetAll() {
+  state.fileId = null; state.assetType = null; state.fileData = null;
+  fileInput.value = '';
+  $('file-info').classList.remove('visible');
+  $('options-section').classList.remove('visible');
+  $('results').classList.remove('visible');
+  dropZone.style.display = '';
+  state.advancedOpen = false;
+  $('advanced-toggle').classList.remove('open');
+  $('advanced-options').classList.remove('visible');
+}
+
+async function handleFile(file) {
+  const form = new FormData();
+  form.append('file', file);
+
+  dropZone.style.display = 'none';
+  $('file-info').classList.add('visible');
+  $('file-name').textContent = file.name;
+  $('stats-grid').innerHTML = '<div class="stat"><div class="stat-label">Analyzing</div><div class="stat-value">...</div></div>';
+  $('alpha-notice').classList.remove('visible');
+
+  try {
+    const res = await fetch('/api/upload', { method: 'POST', body: form });
+    const data = await res.json();
+    if (!res.ok) { alert(data.error || 'Upload failed'); resetAll(); return; }
+
+    state.fileId = data.file_id;
+    state.assetType = data.asset_type;
+    state.fileData = data;
+
+    $('file-name').textContent = data.original_name;
+    renderTypeBadge(data.asset_type);
+    renderStats(data);
+    renderPresets(data.asset_type);
+    renderAdvanced(data.asset_type, data);
+    $('tip-box').innerHTML = TIPS[data.asset_type] || '';
+
+    $('options-section').classList.add('visible');
+    $('results').classList.remove('visible');
+  } catch {
+    alert('Upload failed. Please try again.');
+    resetAll();
+  }
+}
+
+function renderTypeBadge(type) {
+  const badge = $('file-type-badge');
+  badge.textContent = type;
+  badge.className = 'file-type-badge ' + type;
+}
+
+function renderStats(data) {
+  const grid = $('stats-grid');
+  const items = [{ label: 'File size', value: formatSize(data.file_size) }];
+
+  if (data.asset_type === 'video') {
+    if (data.width) items.push({ label: 'Resolution', value: `${data.width}x${data.height}` });
+    if (data.duration) items.push({ label: 'Duration', value: data.duration + 's' });
+    if (data.fps) items.push({ label: 'Frame rate', value: data.fps + ' fps' });
+  } else if (data.asset_type === 'image') {
+    items.push({ label: 'Dimensions', value: `${data.width}x${data.height}` });
+    items.push({ label: 'Format', value: data.format });
+    items.push({ label: 'Mode', value: data.mode });
+  } else if (data.asset_type === 'lottie') {
+    items.push({ label: 'Canvas', value: `${data.canvas_w}x${data.canvas_h}` });
+    items.push({ label: 'Duration', value: data.duration + 's' });
+    items.push({ label: 'Frames', value: `${data.image_count} @ ${data.fps}fps` });
+  }
+
+  grid.innerHTML = items.map(i => `<div class="stat"><div class="stat-label">${i.label}</div><div class="stat-value">${i.value}</div></div>`).join('');
+
+  const notice = $('alpha-notice');
+  notice.classList.remove('visible', 'safe', 'warn');
+  if (data.asset_type === 'image') {
+    if (data.has_alpha && !data.alpha_used) {
+      notice.className = 'alpha-notice safe visible';
+      notice.textContent = 'This image has an alpha channel but it\'s fully opaque. It will be converted to JPEG for much better compression.';
+    } else if (data.alpha_used) {
+      notice.className = 'alpha-notice warn visible';
+      notice.textContent = 'This image uses transparency. It will be saved as WebP to preserve the alpha channel.';
+    }
+  }
+  if (data.asset_type === 'lottie' && !data.is_image_sequence) {
+    notice.className = 'alpha-notice warn visible';
+    notice.textContent = 'This is a vector Lottie (no embedded raster images). Compression won\'t help much since it\'s already lightweight.';
+  }
+}
+
+function renderPresets(type) {
+  const container = $('presets-container');
+  const presets = PRESET_CONFIGS[type] || PRESET_CONFIGS.video;
+  state.preset = 'balanced';
+  container.innerHTML = presets.map(p => `
+    <div class="preset-card ${p.key === 'balanced' ? 'selected' : ''}" data-preset="${p.key}">
+      <h4>${p.title}</h4>
+      <p>${p.desc}</p>
+      <span class="badge ${p.badgeClass}">${p.badge}</span>
+    </div>
+  `).join('');
+  container.querySelectorAll('.preset-card').forEach(card => {
+    card.addEventListener('click', () => {
+      container.querySelectorAll('.preset-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      state.preset = card.dataset.preset;
+      syncAdvancedToPreset(type);
+    });
+  });
+}
+
+function renderAdvanced(type, data) {
+  const container = $('advanced-options');
+  let html = '';
+
+  if (type === 'video') {
+    html = `
+      <div class="option-row">
+        <label>Quality (CRF)</label>
+        <input type="range" id="adv-crf" min="18" max="36" value="27" />
+        <span class="range-value" id="adv-crf-val">27</span>
+        <span class="hint">Lower = better quality, bigger file</span>
+      </div>
+      <div class="option-row">
+        <label>Scale</label>
+        <input type="range" id="adv-scale" min="25" max="100" value="100" step="5" />
+        <span class="range-value" id="adv-scale-val">100%</span>
+        <span class="hint">Reduce resolution</span>
+      </div>
+      <div class="option-row">
+        <label>Max FPS</label>
+        <input type="range" id="adv-fps" min="10" max="60" value="30" step="5" />
+        <span class="range-value" id="adv-fps-val">30</span>
+        <span class="hint">Cap frame rate</span>
+      </div>
+      <div class="option-row">
+        <div class="checkbox-row">
+          <input type="checkbox" id="adv-strip-audio" checked />
+          <label for="adv-strip-audio">Remove audio track</label>
+        </div>
+        <span class="hint">Animations usually don't need audio</span>
+      </div>`;
+  } else if (type === 'image') {
+    const fmtOptions = data.alpha_used
+      ? '<option value="webp" selected>WebP</option><option value="png">PNG</option>'
+      : '<option value="jpg" selected>JPEG</option><option value="webp">WebP</option><option value="png">PNG</option>';
+    html = `
+      <div class="option-row">
+        <label>Format</label>
+        <select id="adv-fmt">${fmtOptions}</select>
+        <span class="hint">${data.alpha_used ? 'WebP preserves transparency' : 'JPEG is best for non-transparent images'}</span>
+      </div>
+      <div class="option-row">
+        <label>Quality</label>
+        <input type="range" id="adv-quality" min="50" max="100" value="90" />
+        <span class="range-value" id="adv-quality-val">90</span>
+        <span class="hint">Lower = smaller file</span>
+      </div>
+      <div class="option-row">
+        <label>Scale</label>
+        <input type="range" id="adv-scale" min="25" max="100" value="100" step="5" />
+        <span class="range-value" id="adv-scale-val">100%</span>
+        <span class="hint">Reduce dimensions</span>
+      </div>`;
+  } else if (type === 'lottie') {
+    html = `
+      <div class="option-row">
+        <label>WebP Quality</label>
+        <input type="range" id="adv-quality" min="30" max="95" value="65" />
+        <span class="range-value" id="adv-quality-val">65</span>
+        <span class="hint">Quality of each frame</span>
+      </div>
+      <div class="option-row">
+        <label>Target FPS</label>
+        <input type="range" id="adv-fps" min="8" max="${Math.round(data.fps || 30)}" value="15" />
+        <span class="range-value" id="adv-fps-val">15</span>
+        <span class="hint">Lower = fewer frames = smaller</span>
+      </div>
+      <div class="option-row">
+        <label>Scale</label>
+        <input type="range" id="adv-scale" min="25" max="100" value="100" step="5" />
+        <span class="range-value" id="adv-scale-val">100%</span>
+        <span class="hint">Reduce frame dimensions</span>
+      </div>`;
+  }
+
+  container.innerHTML = html;
+
+  container.querySelectorAll('input[type="range"]').forEach(slider => {
+    const valSpan = document.getElementById(slider.id + '-val');
+    if (!valSpan) return;
+    slider.addEventListener('input', () => {
+      valSpan.textContent = slider.id.includes('scale') ? slider.value + '%' : slider.value;
+    });
+  });
+
+  syncAdvancedToPreset(type);
+}
+
+function syncAdvancedToPreset(type) {
+  const p = state.preset;
+  if (type === 'video') {
+    const map = { light: 23, balanced: 27, aggressive: 31 };
+    setSlider('adv-crf', map[p]);
+  } else if (type === 'image') {
+    const map = { light: 95, balanced: 90, aggressive: 85 };
+    setSlider('adv-quality', map[p]);
+  } else if (type === 'lottie') {
+    const qMap = { light: 80, balanced: 65, aggressive: 55 };
+    const fMap = { light: state.fileData?.fps || 30, balanced: 15, aggressive: 12 };
+    const sMap = { light: 100, balanced: 100, aggressive: 75 };
+    setSlider('adv-quality', qMap[p]);
+    setSlider('adv-fps', fMap[p]);
+    setSlider('adv-scale', sMap[p]);
+  }
+}
+
+function setSlider(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.value = val;
+  const valEl = document.getElementById(id + '-val');
+  if (valEl) valEl.textContent = id.includes('scale') ? val + '%' : val;
+}
+
+// Advanced toggle
+$('advanced-toggle').addEventListener('click', () => {
+  state.advancedOpen = !state.advancedOpen;
+  $('advanced-toggle').classList.toggle('open', state.advancedOpen);
+  $('advanced-options').classList.toggle('visible', state.advancedOpen);
+});
+
+// ---- Compress ----
+$('compress-btn').addEventListener('click', async () => {
+  if (!state.fileId) return;
+  const btn = $('compress-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Compressing...';
+
+  const body = { file_id: state.fileId, asset_type: state.assetType, preset: state.preset };
+
+  if (state.advancedOpen) {
+    const type = state.assetType;
+    if (type === 'video') {
+      body.crf = intVal('adv-crf');
+      const s = intVal('adv-scale');
+      if (s < 100) body.scale = s / 100;
+      body.max_fps = intVal('adv-fps');
+      body.strip_audio = document.getElementById('adv-strip-audio')?.checked ?? true;
+    } else if (type === 'image') {
+      body.quality = intVal('adv-quality');
+      body.fmt = document.getElementById('adv-fmt')?.value || 'jpg';
+      const s = intVal('adv-scale');
+      if (s < 100) body.scale = s / 100;
+    } else if (type === 'lottie') {
+      body.quality = intVal('adv-quality');
+      body.target_fps = intVal('adv-fps');
+      const s = intVal('adv-scale');
+      body.scale = s / 100;
+    }
+  }
+
+  try {
+    const res = await fetch('/api/compress', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const data = await res.json();
+    if (!res.ok) { alert(data.error || 'Compression failed'); return; }
+
+    $('result-original').textContent = formatSize(data.original_size);
+    $('result-compressed').textContent = formatSize(data.compressed_size);
+    $('reduction-badge').textContent = data.reduction_pct + '% smaller';
+
+    renderPreviews(state.assetType, state.fileId);
+
+    $('download-btn').onclick = () => { window.location.href = `/api/download/${state.fileId}`; };
+    $('results').classList.add('visible');
+    $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch { alert('Compression failed. Please try again.'); }
+  finally { btn.disabled = false; btn.innerHTML = 'Compress'; }
+});
+
+function renderPreviews(type, fileId) {
+  const area = $('preview-area');
+  const ts = Date.now();
+  const origUrl = `/api/preview/${fileId}?t=${ts}`;
+  const compUrl = `/api/preview/${fileId}/compressed?t=${ts}`;
+
+  if (type === 'video') {
+    area.innerHTML = `
+      <div class="preview-box"><div class="preview-label">Original</div><video src="${origUrl}" controls loop muted playsinline></video></div>
+      <div class="preview-box"><div class="preview-label">Compressed</div><video src="${compUrl}" controls loop muted playsinline></video></div>`;
+  } else if (type === 'image') {
+    area.innerHTML = `
+      <div class="preview-box"><div class="preview-label">Original</div><img src="${origUrl}" /></div>
+      <div class="preview-box"><div class="preview-label">Compressed</div><img src="${compUrl}" /></div>`;
+  } else if (type === 'lottie') {
+    area.innerHTML = `
+      <div class="preview-box"><div class="preview-label">Original</div><dotlottie-player src="${origUrl}" autoplay loop style="width:100%;background:#000;"></dotlottie-player></div>
+      <div class="preview-box"><div class="preview-label">Compressed</div><dotlottie-player src="${compUrl}" autoplay loop style="width:100%;background:#000;"></dotlottie-player></div>`;
+  }
+}
+
+function intVal(id) { const el = document.getElementById(id); return el ? parseInt(el.value, 10) : undefined; }
+
+function formatSize(bytes) {
+  if (bytes == null) return '-';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+services:
+  compressor:
+    build: .
+    ports:
+      - "5050:5050"
+    environment:
+      - FLASK_ENV=production
+    restart: unless-stopped
