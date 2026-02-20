@@ -208,7 +208,7 @@
 
     /* Preview mode selector */
     .preview-mode-selector {
-      display: flex; gap: 6px; margin-bottom: 16px; padding: 4px;
+      display: flex; gap: 6px; margin-bottom: 8px; padding: 4px;
       background: var(--surface); border-radius: 10px; border: 1px solid var(--border);
     }
     .preview-mode-btn {
@@ -219,19 +219,26 @@
     .preview-mode-btn:hover { color: var(--text); background: var(--surface-2); }
     .preview-mode-btn.active { background: var(--accent); color: white; }
 
+    .preview-sub-toggle {
+      display: flex; gap: 4px; justify-content: center; margin-bottom: 16px;
+    }
+    .sub-toggle-btn {
+      padding: 5px 16px; border: 1px solid var(--border); border-radius: 20px;
+      background: transparent; color: var(--text-muted); font-size: 11px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .sub-toggle-btn:hover { border-color: var(--accent); color: var(--text); }
+    .sub-toggle-btn.active { background: var(--surface-2); border-color: var(--accent); color: var(--text); }
+
     /* iPhone frame */
     .insitu-container { display: flex; justify-content: center; margin-bottom: 20px; }
-    .phone-wrapper {
-      width: 320px;
-      transform-origin: top center;
-    }
+    .phone-wrapper { width: 320px; }
     .phone-frame {
       width: 393px; height: 852px;
       background: #000; border-radius: 55px;
       border: 4px solid #3a3a3c;
       position: relative; overflow: hidden;
-      transform: scale(0.814);
-      transform-origin: top left;
+      transform: scale(0.814); transform-origin: top left;
     }
     .phone-notch {
       position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
@@ -242,170 +249,230 @@
       border-radius: 51px;
     }
 
-    /* Shared mockup text placeholders */
-    .mu-bar {
-      border-radius: 4px; background: rgba(255,255,255,0.12);
+    /* Shared mockup styles */
+    .mu { font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', sans-serif; }
+    .mu-close {
+      position: absolute; top: 56px; right: 16px; z-index: 20;
+      width: 30px; height: 30px; border-radius: 50%;
+      background: rgba(255,255,255,0.12); display: flex;
+      align-items: center; justify-content: center;
+      color: rgba(255,255,255,0.8); font-size: 14px; font-weight: 300;
     }
-    .mu-bar-bright {
-      border-radius: 4px; background: rgba(255,255,255,0.85);
+    .mu-cta-btn {
+      width: 100%; height: 50px; border-radius: 14px;
+      background: #22C3F0; display: flex; align-items: center;
+      justify-content: center; font-size: 17px; font-weight: 700; color: #000;
     }
-    .mu-bar-dim {
-      border-radius: 3px; background: rgba(255,255,255,0.07);
+    .mu-home-bar {
+      width: 134px; height: 5px; border-radius: 3px; background: #fff;
+      margin: 8px auto 8px;
     }
+    .mu-statusbar {
+      height: 54px; display: flex; align-items: flex-end; justify-content: space-between;
+      padding: 0 24px 8px; font-size: 15px; font-weight: 600; color: #fff;
+      position: relative; z-index: 10;
+    }
+    .mu-status-icons { display: flex; gap: 5px; align-items: center; font-size: 12px; }
 
-    /* Full sheet interstitial mockup */
-    .mockup-fullsheet {
-      width: 100%; height: 100%; background: #0a0a0f;
-      display: flex; flex-direction: column;
-    }
-    .mockup-fullsheet .mu-hero {
-      width: 100%; height: 312px; overflow: hidden; position: relative; flex-shrink: 0;
-      background: linear-gradient(135deg, #0d1b2a 0%, #1b2838 100%);
-    }
-    .mockup-fullsheet .mu-hero video,
-    .mockup-fullsheet .mu-hero img {
+    .mu-asset-el video, .mu-asset-el img {
       width: 100%; height: 100%; object-fit: cover; display: block;
     }
-    .mockup-fullsheet .mu-hero dotlottie-player {
+    .mu-asset-el dotlottie-player {
       width: 100%; height: 100%; display: block;
     }
-    .mockup-fullsheet .mu-hero-gradient {
-      position: absolute; bottom: 0; left: 0; right: 0; height: 80px;
-      background: linear-gradient(transparent, #0a0a0f);
+
+    /* Value prop row */
+    .mu-prop-row {
+      display: flex; align-items: flex-start; gap: 12px; padding: 4px 0;
     }
-    .mockup-fullsheet .mu-statusbar {
-      position: absolute; top: 0; left: 0; right: 0; height: 54px; z-index: 10;
-      display: flex; align-items: flex-end; justify-content: space-between;
-      padding: 0 24px 8px;
+    .mu-prop-icon {
+      width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+      background: rgba(34,195,240,0.12);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; color: #22C3F0;
     }
-    .mockup-fullsheet .mu-statusbar-dot {
-      width: 28px; height: 28px; border-radius: 50%;
-      background: rgba(255,255,255,0.15); backdrop-filter: blur(8px);
+    .mu-prop-text { display: flex; flex-direction: column; gap: 2px; }
+    .mu-prop-title { font-size: 15px; font-weight: 700; color: #fff; }
+    .mu-prop-sub { font-size: 13px; color: rgba(255,255,255,0.5); }
+
+    /* --- Full Sheet mockup --- */
+    .mu-fs {
+      width: 100%; height: 100%; background: #121212;
+      display: flex; flex-direction: column; overflow-y: auto;
     }
-    .mockup-fullsheet .mu-body {
-      flex: 1; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px;
+    .mu-fs .mu-hero-bleed {
+      width: 100%; height: 320px; flex-shrink: 0; position: relative; overflow: hidden;
+      background: #1a1f28;
     }
-    .mockup-fullsheet .mu-headline { display: flex; flex-direction: column; gap: 8px; }
-    .mockup-fullsheet .mu-bullets {
-      display: flex; flex-direction: column; gap: 10px; padding: 16px;
-      background: rgba(255,255,255,0.04); border-radius: 12px;
+    .mu-fs .mu-hero-inline {
+      margin: 8px 16px 0; border-radius: 16px; height: 260px; flex-shrink: 0;
+      position: relative; overflow: hidden; background: #1a1f28;
     }
-    .mockup-fullsheet .mu-bullet-row {
-      display: flex; align-items: center; gap: 10px;
+    .mu-fs .mu-hero-gradient {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 100px;
+      background: linear-gradient(transparent, #121212);
     }
-    .mockup-fullsheet .mu-bullet-icon {
-      width: 32px; height: 32px; border-radius: 8px; background: rgba(0,200,150,0.15); flex-shrink: 0;
+    .mu-fs .mu-titlebar {
+      height: 44px; display: flex; align-items: center; justify-content: center;
+      position: relative; flex-shrink: 0;
     }
-    .mockup-fullsheet .mu-footer {
-      padding: 16px 24px 40px; flex-shrink: 0;
+    .mu-fs .mu-titlebar-text {
+      font-size: 17px; font-weight: 600; color: #fff;
     }
-    .mockup-fullsheet .mu-cta {
-      width: 100%; height: 48px; border-radius: 24px;
-      background: linear-gradient(135deg, #00c896, #00b4d8);
+    .mu-fs .mu-titlebar .mu-close {
+      position: absolute; top: 7px; right: 16px;
     }
-    .mockup-fullsheet .mu-legal {
-      margin-top: 8px; display: flex; flex-direction: column; gap: 4px; align-items: center;
+    .mu-fs .mu-content {
+      flex: 1; padding: 16px 24px; display: flex; flex-direction: column; gap: 12px;
+      text-align: center;
+    }
+    .mu-fs .mu-h1 {
+      font-size: 26px; font-weight: 800; color: #fff; line-height: 1.2;
+    }
+    .mu-fs .mu-sub {
+      font-size: 15px; color: rgba(255,255,255,0.55); line-height: 1.4;
+    }
+    .mu-fs .mu-props {
+      display: flex; flex-direction: column; gap: 8px;
+      text-align: left; margin-top: 4px;
+    }
+    .mu-fs .mu-legal {
+      font-size: 11px; color: rgba(255,255,255,0.3); line-height: 1.4;
+      text-align: left; margin-top: auto; padding-top: 12px;
+    }
+    .mu-fs .mu-footer {
+      padding: 8px 24px 0; flex-shrink: 0;
     }
 
-    /* Half sheet promo mockup */
-    .mockup-halfsheet {
-      width: 100%; height: 100%; position: relative;
-      background: #0a0a0f;
+    /* --- Half Sheet mockup --- */
+    .mu-hs {
+      width: 100%; height: 100%; position: relative; background: #121212;
     }
-    .mockup-halfsheet .mu-backdrop {
-      position: absolute; inset: 0;
-      background: rgba(0,0,0,0.6);
+    .mu-hs .mu-backdrop {
+      position: absolute; inset: 0; background: rgba(0,0,0,0.55);
     }
-    .mockup-halfsheet .mu-sheet {
+    .mu-hs .mu-sheet {
       position: absolute; bottom: 0; left: 0; right: 0;
-      height: 580px;
-      background: #111118; border-radius: 20px 20px 0 0;
-      display: flex; flex-direction: column;
-      overflow: hidden;
+      background: #121212; border-radius: 32px 32px 0 0;
+      box-shadow: 0px -12px 40px rgba(28,28,30,0.8);
+      display: flex; flex-direction: column; overflow: hidden;
     }
-    .mockup-halfsheet .mu-handle {
-      width: 36px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.2);
-      margin: 10px auto 0;
+    .mu-hs .mu-handle {
+      width: 36px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.2);
+      margin: 10px auto 0; flex-shrink: 0;
     }
-    .mockup-halfsheet .mu-hero {
-      width: 100%; height: 220px; overflow: hidden; flex-shrink: 0;
-      background: linear-gradient(135deg, #0d1b2a 0%, #1b2838 100%);
-      margin-top: 8px;
+    .mu-hs .mu-sheet-close {
+      position: absolute; top: 12px; right: 16px; z-index: 20;
+      width: 30px; height: 30px; border-radius: 50%;
+      background: rgba(255,255,255,0.12); display: flex;
+      align-items: center; justify-content: center;
+      color: rgba(255,255,255,0.8); font-size: 14px;
     }
-    .mockup-halfsheet .mu-hero video,
-    .mockup-halfsheet .mu-hero img {
-      width: 100%; height: 100%; object-fit: cover; display: block;
+    .mu-hs .mu-hero-bleed {
+      width: 100%; height: 240px; flex-shrink: 0; overflow: hidden;
+      background: #1a1f28; margin-top: 8px;
     }
-    .mockup-halfsheet .mu-hero dotlottie-player {
-      width: 100%; height: 100%; display: block;
+    .mu-hs .mu-hero-inline {
+      margin: 12px 16px 0; border-radius: 16px; height: 200px; flex-shrink: 0;
+      overflow: hidden; background: #1a1f28;
     }
-    .mockup-halfsheet .mu-body {
-      flex: 1; padding: 20px 24px; display: flex; flex-direction: column; gap: 12px;
+    .mu-hs .mu-content {
+      flex: 1; padding: 16px 24px; display: flex; flex-direction: column; gap: 8px;
+      text-align: center;
     }
-    .mockup-halfsheet .mu-headline { display: flex; flex-direction: column; gap: 8px; }
-    .mockup-halfsheet .mu-footer {
-      padding: 12px 24px 40px; flex-shrink: 0;
+    .mu-hs .mu-h1 {
+      font-size: 22px; font-weight: 800; color: #fff; line-height: 1.2;
     }
-    .mockup-halfsheet .mu-cta {
-      width: 100%; height: 48px; border-radius: 24px;
-      background: linear-gradient(135deg, #00c896, #00b4d8);
+    .mu-hs .mu-sub {
+      font-size: 14px; color: rgba(255,255,255,0.55); line-height: 1.4;
     }
+    .mu-hs .mu-legal {
+      font-size: 10px; color: rgba(255,255,255,0.3); line-height: 1.4;
+      text-align: left; margin-top: auto; padding-top: 8px;
+    }
+    .mu-hs .mu-footer { padding: 8px 24px 0; flex-shrink: 0; }
 
-    /* Banner mockup */
-    .mockup-banner {
-      width: 100%; height: 100%;
-      background: #0a0a0f;
+    /* --- Banner mockup --- */
+    .mu-bn {
+      width: 100%; height: 100%; background: #121212;
       display: flex; flex-direction: column;
     }
-    .mockup-banner .mu-statusbar {
-      height: 54px; flex-shrink: 0;
+    .mu-bn .mu-screen-body {
+      flex: 1; padding: 0 16px; display: flex; flex-direction: column; gap: 16px;
     }
-    .mockup-banner .mu-screen-content {
-      flex: 1; padding: 0 16px; display: flex; flex-direction: column; gap: 12px;
+    .mu-bn .mu-nav {
+      display: flex; gap: 10px; padding: 4px 0; align-items: center;
     }
-    .mockup-banner .mu-nav-placeholder {
-      display: flex; gap: 8px; padding: 8px 0; align-items: center;
+    .mu-bn .mu-nav-avi {
+      width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.1);
     }
-    .mockup-banner .mu-balance-placeholder {
-      padding: 24px 0 16px; display: flex; flex-direction: column; gap: 8px;
+    .mu-bn .mu-balance {
+      padding: 12px 0 8px;
     }
-    .mockup-banner .mu-banner-card {
+    .mu-bn .mu-balance-label {
+      font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 4px;
+    }
+    .mu-bn .mu-balance-amount {
+      font-size: 34px; font-weight: 800; color: #fff;
+    }
+    .mu-bn .mu-banner-card {
+      position: relative; width: 100%; height: 128px;
+      background: #191E24; border: 1px solid #2C343E;
       border-radius: 16px; overflow: hidden;
-      background: #111118; border: 1px solid rgba(255,255,255,0.06);
-      display: flex; flex-direction: row; height: 112px;
     }
-    .mockup-banner .mu-banner-image {
-      width: 112px; height: 112px; flex-shrink: 0; overflow: hidden;
-      background: linear-gradient(135deg, #0d1b2a 0%, #1b2838 100%);
+    .mu-bn .mu-banner-bg {
+      position: absolute; inset: 0; z-index: 0;
     }
-    .mockup-banner .mu-banner-image video,
-    .mockup-banner .mu-banner-image img {
+    .mu-bn .mu-banner-bg video, .mu-bn .mu-banner-bg img {
       width: 100%; height: 100%; object-fit: cover; display: block;
     }
-    .mockup-banner .mu-banner-image dotlottie-player {
+    .mu-bn .mu-banner-bg dotlottie-player {
       width: 100%; height: 100%; display: block;
     }
-    .mockup-banner .mu-banner-text {
-      flex: 1; padding: 14px 16px; display: flex; flex-direction: column; justify-content: center; gap: 8px;
+    .mu-bn .mu-banner-overlay {
+      position: relative; z-index: 1; padding: 16px;
+      height: 100%; display: flex; flex-direction: column;
+      justify-content: center; gap: 4px;
     }
-    .mockup-banner .mu-banner-cta {
-      width: 80px; height: 28px; border-radius: 14px;
-      background: linear-gradient(135deg, #00c896, #00b4d8);
-      margin-top: 4px;
+    .mu-bn .mu-banner-title {
+      font-size: 17px; font-weight: 800; font-style: italic; color: #fff;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.5);
     }
-    .mockup-banner .mu-list-items {
-      display: flex; flex-direction: column; gap: 10px; margin-top: 8px;
+    .mu-bn .mu-banner-sub {
+      font-size: 12px; color: rgba(255,255,255,0.7);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.5);
     }
-    .mockup-banner .mu-list-item {
-      height: 56px; border-radius: 12px; background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.04);
+    .mu-bn .mu-banner-link {
+      font-size: 13px; font-weight: 600; color: #22C3F0; margin-top: 2px;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.5);
     }
-    .mockup-banner .mu-tab-bar {
+    .mu-bn .mu-list-items {
+      display: flex; flex-direction: column; gap: 1px; margin-top: 4px;
+    }
+    .mu-bn .mu-list-item {
+      height: 52px; display: flex; align-items: center; gap: 12px; padding: 0 4px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .mu-bn .mu-li-icon {
+      width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.06);
+    }
+    .mu-bn .mu-li-text {
+      flex: 1; display: flex; flex-direction: column; gap: 3px;
+    }
+    .mu-bn .mu-li-t1 { height: 11px; width: 60%; border-radius: 3px; background: rgba(255,255,255,0.15); }
+    .mu-bn .mu-li-t2 { height: 9px; width: 40%; border-radius: 3px; background: rgba(255,255,255,0.06); }
+    .mu-bn .mu-tab-bar {
       height: 80px; flex-shrink: 0; border-top: 1px solid rgba(255,255,255,0.06);
-      display: flex; align-items: center; justify-content: space-around; padding: 0 8px;
+      display: flex; align-items: center; justify-content: space-around; padding: 0 16px;
     }
-    .mockup-banner .mu-tab-dot {
-      width: 24px; height: 24px; border-radius: 6px; background: rgba(255,255,255,0.08);
+    .mu-bn .mu-tab {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+    }
+    .mu-bn .mu-tab-icon {
+      width: 22px; height: 22px; border-radius: 5px; background: rgba(255,255,255,0.08);
+    }
+    .mu-bn .mu-tab-label {
+      font-size: 9px; color: rgba(255,255,255,0.3);
     }
 
     .tip-box {
@@ -501,6 +568,10 @@
       <button class="preview-mode-btn" data-mode="fullsheet">Full Sheet</button>
       <button class="preview-mode-btn" data-mode="halfsheet">Half Sheet</button>
       <button class="preview-mode-btn" data-mode="banner">Banner</button>
+    </div>
+    <div class="preview-sub-toggle" id="preview-sub-toggle" style="display:none;">
+      <button class="sub-toggle-btn active" data-variant="bleed">Full-bleed</button>
+      <button class="sub-toggle-btn" data-variant="inline">Inline</button>
     </div>
 
     <div class="preview-area" id="preview-area"></div>
@@ -901,15 +972,32 @@ function renderRetryButtons(type, currentPreset) {
 
 // ---- Preview modes ----
 state.previewMode = 'raw';
+state.previewVariant = 'bleed';
 
 document.querySelectorAll('.preview-mode-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.preview-mode-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     state.previewMode = btn.dataset.mode;
+    updateSubToggle();
     if (state.fileId) renderCurrentPreview();
   });
 });
+
+document.querySelectorAll('.sub-toggle-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.sub-toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.previewVariant = btn.dataset.variant;
+    if (state.fileId) renderCurrentPreview();
+  });
+});
+
+function updateSubToggle() {
+  const mode = state.previewMode;
+  const toggle = $('preview-sub-toggle');
+  toggle.style.display = (mode === 'fullsheet' || mode === 'halfsheet') ? '' : 'none';
+}
 
 function renderCurrentPreview() {
   const mode = state.previewMode;
@@ -923,7 +1011,7 @@ function renderCurrentPreview() {
   } else {
     area.style.display = 'none';
     insitu.style.display = '';
-    renderMockup(mode, state.assetType, state.fileId);
+    renderMockup(mode, state.previewVariant, state.assetType, state.fileId);
   }
 }
 
@@ -952,135 +1040,117 @@ function renderRawPreviews(type, fileId) {
   }
 }
 
-function assetElement(type, url) {
-  if (type === 'video') return `<video src="${url}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:cover;display:block;"></video>`;
-  if (type === 'image') return `<img src="${url}" style="width:100%;height:100%;object-fit:cover;display:block;" />`;
-  if (type === 'lottie') return `<dotlottie-player src="${url}" autoplay loop style="width:100%;height:100%;display:block;background:transparent;"></dotlottie-player>`;
+function assetEl(type, url) {
+  if (type === 'video') return `<video src="${url}" autoplay loop muted playsinline></video>`;
+  if (type === 'image') return `<img src="${url}" />`;
+  if (type === 'lottie') return `<dotlottie-player src="${url}" autoplay loop style="background:transparent;"></dotlottie-player>`;
   return '';
 }
 
-function renderMockup(mode, type, fileId) {
+function valuePropRow() {
+  return `<div class="mu-prop-row">
+    <div class="mu-prop-icon">\u25A6</div>
+    <div class="mu-prop-text"><div class="mu-prop-title">Value prop</div><div class="mu-prop-sub">Optional sub-copy</div></div>
+  </div>`;
+}
+
+function renderMockup(mode, variant, type, fileId) {
   const screen = $('phone-screen');
   const ts = Date.now();
   const compUrl = `/api/preview/${fileId}/compressed?t=${ts}`;
-  const asset = assetElement(type, compUrl);
+  const asset = assetEl(type, compUrl);
+
+  const statusbar = `<div class="mu-statusbar"><span>9:41</span><div class="mu-status-icons">\u25CF\u25CF\u25CF \u25CF\u25CF\u25CF\u25CF \u2588</div></div>`;
+  const homeBar = `<div class="mu-home-bar"></div>`;
 
   if (mode === 'fullsheet') {
+    const isBleed = variant === 'bleed';
+    const heroClass = isBleed ? 'mu-hero-bleed' : 'mu-hero-inline';
+    const titlebar = isBleed ? '' : `<div class="mu-titlebar"><span class="mu-titlebar-text">Title</span><div class="mu-close">\u2715</div></div>`;
+    const closeBtn = isBleed ? `<div class="mu-close" style="position:absolute;top:56px;right:16px;z-index:20;">\u2715</div>` : '';
+
     screen.innerHTML = `
-      <div class="mockup-fullsheet">
-        <div class="mu-hero">
-          <div class="mu-statusbar">
-            <div class="mu-statusbar-dot"></div>
-            <div class="mu-statusbar-dot"></div>
-          </div>
-          ${asset}
+      <div class="mu-fs mu" style="position:relative;">
+        ${statusbar}
+        ${titlebar}
+        ${closeBtn}
+        <div class="${heroClass}">
+          <div class="mu-asset-el">${asset}</div>
           <div class="mu-hero-gradient"></div>
         </div>
-        <div class="mu-body">
-          <div class="mu-headline">
-            <div class="mu-bar-bright" style="width:75%;height:22px;"></div>
-            <div class="mu-bar-bright" style="width:50%;height:22px;"></div>
+        <div class="mu-content">
+          <div class="mu-h1">Large headline with<br/>48 chars max</div>
+          <div class="mu-sub">This is an optional sub caption that can run into a couple of lines or more.</div>
+          <div class="mu-props">
+            ${valuePropRow()}${valuePropRow()}${valuePropRow()}
           </div>
-          <div style="display:flex;flex-direction:column;gap:5px;">
-            <div class="mu-bar" style="width:92%;height:13px;"></div>
-            <div class="mu-bar" style="width:80%;height:13px;"></div>
-          </div>
-          <div class="mu-bullets">
-            <div class="mu-bullet-row">
-              <div class="mu-bullet-icon"></div>
-              <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
-                <div class="mu-bar" style="width:60%;height:13px;"></div>
-                <div class="mu-bar-dim" style="width:85%;height:10px;"></div>
-              </div>
-            </div>
-            <div class="mu-bullet-row">
-              <div class="mu-bullet-icon"></div>
-              <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
-                <div class="mu-bar" style="width:50%;height:13px;"></div>
-                <div class="mu-bar-dim" style="width:75%;height:10px;"></div>
-              </div>
-            </div>
-            <div class="mu-bullet-row">
-              <div class="mu-bullet-icon"></div>
-              <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
-                <div class="mu-bar" style="width:70%;height:13px;"></div>
-                <div class="mu-bar-dim" style="width:65%;height:10px;"></div>
-              </div>
-            </div>
-          </div>
+          <div class="mu-legal">OnePay is a financial technology company, not a bank. Banking services provided by Coastal Community Bank or Lead Bank, Members FDIC.</div>
         </div>
-        <div class="mu-footer">
-          <div class="mu-cta"></div>
-          <div class="mu-legal">
-            <div class="mu-bar-dim" style="width:70%;height:8px;margin-top:6px;"></div>
-            <div class="mu-bar-dim" style="width:50%;height:8px;"></div>
-          </div>
-        </div>
+        <div class="mu-footer"><div class="mu-cta-btn">Let's go!</div></div>
+        ${homeBar}
       </div>`;
   } else if (mode === 'halfsheet') {
+    const isBleed = variant === 'bleed';
+    const heroClass = isBleed ? 'mu-hero-bleed' : 'mu-hero-inline';
+    const sheetH = isBleed ? '672px' : '672px';
+
     screen.innerHTML = `
-      <div class="mockup-halfsheet">
+      <div class="mu-hs mu">
+        ${statusbar}
         <div class="mu-backdrop"></div>
-        <div class="mu-sheet">
+        <div class="mu-sheet" style="height:${sheetH};">
           <div class="mu-handle"></div>
-          <div class="mu-hero">${asset}</div>
-          <div class="mu-body">
-            <div class="mu-headline">
-              <div class="mu-bar-bright" style="width:80%;height:20px;"></div>
-              <div class="mu-bar-bright" style="width:55%;height:20px;"></div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:5px;">
-              <div class="mu-bar" style="width:95%;height:12px;"></div>
-              <div class="mu-bar" style="width:85%;height:12px;"></div>
-              <div class="mu-bar" style="width:60%;height:12px;"></div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:5px;margin-top:4px;">
-              <div class="mu-bar" style="width:90%;height:12px;"></div>
-              <div class="mu-bar" style="width:70%;height:12px;"></div>
-            </div>
+          <div class="mu-sheet-close">\u2715</div>
+          <div class="${heroClass}">
+            <div class="mu-asset-el">${asset}</div>
           </div>
-          <div class="mu-footer">
-            <div class="mu-cta"></div>
+          <div class="mu-content">
+            <div class="mu-h1">Med headline with<br/>52 characters max</div>
+            <div class="mu-sub">This is an optional sub caption that can run into a couple of lines or more.</div>
+            <div class="mu-legal">We may not open an account for you, or may reduce any credit limit offered, if you no longer meet our credit criteria or if you do not have sufficient income.</div>
           </div>
+          <div class="mu-footer"><div class="mu-cta-btn">Let's go!</div></div>
+          ${homeBar}
         </div>
       </div>`;
   } else if (mode === 'banner') {
     screen.innerHTML = `
-      <div class="mockup-banner">
-        <div class="mu-statusbar"></div>
-        <div class="mu-screen-content">
-          <div class="mu-nav-placeholder">
-            <div class="mu-bar" style="width:28px;height:28px;border-radius:50%;"></div>
-            <div class="mu-bar" style="width:100px;height:16px;"></div>
+      <div class="mu-bn mu">
+        ${statusbar}
+        <div class="mu-screen-body">
+          <div class="mu-nav">
+            <div class="mu-nav-avi"></div>
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <div style="height:10px;width:80px;border-radius:3px;background:rgba(255,255,255,0.15);"></div>
+              <div style="height:8px;width:50px;border-radius:3px;background:rgba(255,255,255,0.07);"></div>
+            </div>
             <div style="flex:1;"></div>
-            <div class="mu-bar" style="width:28px;height:28px;border-radius:50%;"></div>
+            <div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.08);"></div>
           </div>
-          <div class="mu-balance-placeholder">
-            <div class="mu-bar-dim" style="width:100px;height:12px;"></div>
-            <div class="mu-bar-bright" style="width:160px;height:32px;"></div>
+          <div class="mu-balance">
+            <div class="mu-balance-label">Total balance</div>
+            <div class="mu-balance-amount">$4,128.36</div>
           </div>
           <div class="mu-banner-card">
-            <div class="mu-banner-image">${asset}</div>
-            <div class="mu-banner-text">
-              <div class="mu-bar-bright" style="width:90%;height:14px;"></div>
-              <div class="mu-bar" style="width:100%;height:10px;"></div>
-              <div class="mu-bar" style="width:70%;height:10px;"></div>
-              <div class="mu-banner-cta"></div>
+            <div class="mu-banner-bg mu-asset-el">${asset}</div>
+            <div class="mu-banner-overlay">
+              <div class="mu-banner-title">Abcdefghijklmnopqr<br/>estuvwxyz1234567...</div>
+              <div class="mu-banner-sub">Abcdefghijklmnopqrstuvw...</div>
+              <div class="mu-banner-link">Abcdefghijklmnopqrstuvw... &rsaquo;</div>
             </div>
           </div>
           <div class="mu-list-items">
-            <div class="mu-list-item"></div>
-            <div class="mu-list-item"></div>
-            <div class="mu-list-item"></div>
-            <div class="mu-list-item"></div>
+            <div class="mu-list-item"><div class="mu-li-icon"></div><div class="mu-li-text"><div class="mu-li-t1"></div><div class="mu-li-t2"></div></div></div>
+            <div class="mu-list-item"><div class="mu-li-icon"></div><div class="mu-li-text"><div class="mu-li-t1"></div><div class="mu-li-t2"></div></div></div>
+            <div class="mu-list-item"><div class="mu-li-icon"></div><div class="mu-li-text"><div class="mu-li-t1"></div><div class="mu-li-t2"></div></div></div>
           </div>
         </div>
         <div class="mu-tab-bar">
-          <div class="mu-tab-dot"></div>
-          <div class="mu-tab-dot"></div>
-          <div class="mu-tab-dot"></div>
-          <div class="mu-tab-dot"></div>
-          <div class="mu-tab-dot"></div>
+          <div class="mu-tab"><div class="mu-tab-icon"></div><div class="mu-tab-label">Home</div></div>
+          <div class="mu-tab"><div class="mu-tab-icon"></div><div class="mu-tab-label">Move</div></div>
+          <div class="mu-tab"><div class="mu-tab-icon"></div><div class="mu-tab-label">Wallet</div></div>
+          <div class="mu-tab"><div class="mu-tab-icon"></div><div class="mu-tab-label">Invest</div></div>
+          <div class="mu-tab"><div class="mu-tab-icon"></div><div class="mu-tab-label">More</div></div>
         </div>
       </div>`;
   }
