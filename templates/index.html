@@ -733,12 +733,12 @@
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
     </svg>
-    <h3>Drop your video or PNG sequence</h3>
+    <h3>Drop your video or PNG frames</h3>
     <p>or <span class="browse-link">browse files</span></p>
     <div class="formats">
-      <span>MOV (QuickTime with Alpha)</span><span>MP4</span><span>ZIP (PNG sequence)</span>
+      <span>MOV (QuickTime with Alpha)</span><span>MP4</span><span>Multiple PNGs</span><span>ZIP (PNG sequence)</span>
     </div>
-    <input type="file" id="conv-file-input" accept=".mov,.mp4,.zip" style="display:none;" />
+    <input type="file" id="conv-file-input" accept=".mov,.mp4,.zip,.png" multiple style="display:none;" />
   </div>
 
   <div class="file-info" id="conv-file-info">
@@ -1452,8 +1452,13 @@ const convFileInput = $('conv-file-input');
 convDropZone.addEventListener('click', () => convFileInput.click());
 convDropZone.addEventListener('dragover', e => { e.preventDefault(); convDropZone.classList.add('dragover'); });
 convDropZone.addEventListener('dragleave', () => convDropZone.classList.remove('dragover'));
-convDropZone.addEventListener('drop', e => { e.preventDefault(); convDropZone.classList.remove('dragover'); if (e.dataTransfer.files.length) handleConvertFile(e.dataTransfer.files[0]); });
-convFileInput.addEventListener('change', () => { if (convFileInput.files.length) handleConvertFile(convFileInput.files[0]); });
+convDropZone.addEventListener('drop', e => {
+  e.preventDefault(); convDropZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) handleConvertFiles(e.dataTransfer.files);
+});
+convFileInput.addEventListener('change', () => {
+  if (convFileInput.files.length) handleConvertFiles(convFileInput.files);
+});
 $('conv-remove-btn').addEventListener('click', resetConvert);
 $('conv-start-over-btn').addEventListener('click', resetConvert);
 
@@ -1466,13 +1471,31 @@ function resetConvert() {
   convDropZone.style.display = '';
 }
 
-async function handleConvertFile(file) {
+function handleConvertFiles(fileList) {
+  const files = Array.from(fileList);
+  const allPngs = files.length > 1 && files.every(f => f.name.toLowerCase().endsWith('.png'));
+
+  if (files.length > 1 && !allPngs) {
+    alert('When selecting multiple files, all files must be PNGs. For a single video, select one .mov or .mp4 file.');
+    return;
+  }
+  handleConvertUpload(files, allPngs);
+}
+
+async function handleConvertUpload(files, isMultiPng) {
   const form = new FormData();
-  form.append('file', file);
+  const displayName = isMultiPng ? `${files.length} PNG frames` : files[0].name;
+
+  if (isMultiPng) {
+    const sorted = files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    for (const f of sorted) form.append('files', f);
+  } else {
+    form.append('file', files[0]);
+  }
 
   convDropZone.style.display = 'none';
   $('conv-file-info').classList.add('visible');
-  $('conv-file-name').textContent = file.name;
+  $('conv-file-name').textContent = displayName;
   $('conv-stats-grid').innerHTML = '<div class="stat"><div class="stat-label">Analyzing</div><div class="stat-value">...</div></div>';
   $('conv-alpha-notice').classList.remove('visible');
 

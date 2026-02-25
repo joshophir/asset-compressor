@@ -792,16 +792,44 @@ def preview_compressed(file_id):
 def upload_convert():
     cleanup_old_files()
 
-    if "file" not in request.files:
-        return jsonify({"error": "No file provided"}), 400
+    files_list = request.files.getlist("files")
+    single_file = request.files.get("file")
 
-    file = request.files["file"]
-    if not file.filename:
-        return jsonify({"error": "No file selected"}), 400
+    if files_list and len(files_list) > 1:
+        non_png = [f.filename for f in files_list if not f.filename.lower().endswith(".png")]
+        if non_png:
+            return jsonify({"error": "Multi-file upload only supports PNG files. Non-PNG found: " + ", ".join(non_png)}), 400
+
+        file_id = str(uuid.uuid4())
+        save_path = UPLOAD_DIR / f"{file_id}.zip"
+
+        with zipfile.ZipFile(str(save_path), "w", zipfile.ZIP_STORED) as zf:
+            for f in sorted(files_list, key=lambda f: f.filename):
+                data = f.read()
+                zf.writestr(f.filename, data)
+
+        original_name = f"{len(files_list)} PNG files"
+
+        try:
+            info = analyze_png_sequence(str(save_path))
+        except Exception as e:
+            save_path.unlink(missing_ok=True)
+            return jsonify({"error": f"Could not read files: {e}"}), 400
+
+        return jsonify({
+            "file_id": file_id,
+            "original_name": original_name,
+            "ext": ".zip",
+            **info,
+        })
+
+    file = single_file or (files_list[0] if files_list else None)
+    if not file or not file.filename:
+        return jsonify({"error": "No file provided"}), 400
 
     ext = Path(file.filename).suffix.lower()
     if ext not in (".mov", ".mp4", ".zip"):
-        return jsonify({"error": f"Unsupported format ({ext}). Use .mov (QuickTime with Alpha) or .zip (PNG sequence)."}), 400
+        return jsonify({"error": f"Unsupported format ({ext}). Use .mov (QuickTime with Alpha), .zip (PNG sequence), or select multiple PNGs."}), 400
 
     file_id = str(uuid.uuid4())
     save_path = UPLOAD_DIR / f"{file_id}{ext}"
