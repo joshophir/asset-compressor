@@ -606,8 +606,16 @@
   <!-- ====== COMPRESS TAB ====== -->
   <div class="tool-panel active" id="panel-compress">
 
+  <div class="tip-box">
+    <strong>When to use Compress:</strong><br/>
+    &bull; <strong>MP4 is the go-to format</strong> for animations with raster effects, gradients, particles, or any non-transparent content. Creative should export as MP4 and compress here.<br/>
+    &bull; <strong>Lottie</strong> files with embedded image sequences can also be compressed (recompresses frames, reduces FPS).<br/>
+    &bull; <strong>Images</strong> (PNG, JPG) &mdash; great for static assets, hero images, and poster frames.<br/>
+    &bull; This tool typically reduces MP4 files by <strong>70&ndash;85%</strong> with negligible quality loss.
+  </div>
+
   <!-- Upload -->
-  <div class="drop-zone" id="drop-zone">
+  <div class="drop-zone" id="drop-zone" style="margin-top:24px;">
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
     </svg>
@@ -794,11 +802,14 @@
   </div>
 
   <div class="tip-box" id="conv-tip-box">
-    <strong>Convert tips:</strong><br/>
-    &bull; <strong>QuickTime with Alpha (.mov)</strong> is the ideal input &mdash; ProRes 4444 or Animation codec preserves transparency.<br/>
-    &bull; <strong>PNG sequence (.zip)</strong> &mdash; put your numbered PNG frames in a zip file. Alpha channels are preserved.<br/>
-    &bull; The checkerboard pattern in the preview represents transparency.<br/>
-    &bull; Frames are stored as PNG by default for lossless alpha. Use WebP for smaller files if some quality loss is acceptable.
+    <strong>When to use Convert to Lottie:</strong><br/>
+    &bull; Best for <strong>small micro animations and icons</strong> that need transparent backgrounds &mdash; things like animated icons, loaders, and small illustrative moments.<br/>
+    &bull; <strong>Not intended for large full-screen animations</strong> &mdash; those should be MP4 (use the Compress tab).<br/>
+    &bull; Lottie with transparency works well at small dimensions. Larger animations with many frames will produce very large Lottie files.<br/><br/>
+    <strong>How to use:</strong><br/>
+    &bull; <strong>QuickTime with Alpha (.mov)</strong> is the ideal input &mdash; export from After Effects as ProRes 4444 with alpha.<br/>
+    &bull; <strong>PNG frames</strong> &mdash; select multiple PNGs directly (no need to zip). Alpha channels are preserved.<br/>
+    &bull; The checkerboard in the preview represents transparency.
   </div>
 
   </div><!-- /panel-convert -->
