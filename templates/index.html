@@ -9,6 +9,20 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs" type="module"></script>
   <style>
+    @font-face {
+      font-family: 'One Neo';
+      src: url('/static/fonts/OneNeo-Bold.woff2') format('woff2');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'One Neo';
+      src: url('/static/fonts/OneNeo-Regular.woff2') format('woff2');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
     :root {
       --bg: #121212;
       --surface: #1a1e24;
@@ -31,7 +45,7 @@
     }
     .container { max-width: 800px; margin: 0 auto; padding: 40px 24px; }
     header { text-align: center; margin-bottom: 40px; }
-    header h1 { font-size: 32px; font-weight: 800; margin-bottom: 8px; letter-spacing: -1px; }
+    header h1 { font-family: 'One Neo', 'Inter', sans-serif; font-size: 32px; font-weight: 700; margin-bottom: 8px; letter-spacing: -1px; }
     header p { color: var(--text-muted); font-size: 15px; }
 
     /* Tool tabs */
@@ -574,8 +588,8 @@
     }
 
     .tip-box {
-      background: rgba(90,193,255,0.06); border: 1px solid rgba(90,193,255,0.15);
-      border-radius: var(--radius); padding: 16px 20px; margin-top: 32px;
+      background: rgba(90,193,255,0.04); border: 1px solid rgba(90,193,255,0.12);
+      border-radius: var(--radius); padding: 16px 20px; margin-bottom: 24px;
       font-size: 13px; color: var(--text-muted); line-height: 1.6;
     }
     .tip-box:empty { display: none; }
@@ -618,7 +632,7 @@
   </div>
 
   <!-- Upload -->
-  <div class="drop-zone" id="drop-zone" style="margin-top:24px;">
+  <div class="drop-zone" id="drop-zone">
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
     </svg>
@@ -734,12 +748,23 @@
     <button class="start-over-btn" id="start-over-btn">Start over with a new file</button>
   </div>
 
-  <div class="tip-box" id="tip-box"></div>
+  <div class="tip-box" id="tip-box" style="margin-bottom:0;margin-top:24px;"></div>
 
   </div><!-- /panel-compress -->
 
   <!-- ====== CONVERT TO LOTTIE TAB ====== -->
   <div class="tool-panel" id="panel-convert">
+
+  <div class="tip-box">
+    <strong>When to use Convert to Lottie:</strong><br/>
+    &bull; Best for <strong>small micro animations and icons</strong> that need transparent backgrounds &mdash; things like animated icons, loaders, and small illustrative moments.<br/>
+    &bull; <strong>Not intended for large full-screen animations</strong> &mdash; those should be MP4 (use the Compress tab).<br/>
+    &bull; Lottie with transparency works well at small dimensions. Larger animations with many frames will produce very large Lottie files.<br/><br/>
+    <strong>How to use:</strong><br/>
+    &bull; <strong>QuickTime with Alpha (.mov)</strong> is the ideal input &mdash; export from After Effects as ProRes 4444 with alpha.<br/>
+    &bull; <strong>PNG frames</strong> &mdash; select multiple PNGs directly (no need to zip). Alpha channels are preserved.<br/>
+    &bull; The checkerboard in the preview represents transparency.
+  </div>
 
   <div class="drop-zone" id="conv-drop-zone">
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -802,17 +827,6 @@
       Download .lottie File
     </button>
     <button class="start-over-btn" id="conv-start-over-btn">Convert another file</button>
-  </div>
-
-  <div class="tip-box" id="conv-tip-box">
-    <strong>When to use Convert to Lottie:</strong><br/>
-    &bull; Best for <strong>small micro animations and icons</strong> that need transparent backgrounds &mdash; things like animated icons, loaders, and small illustrative moments.<br/>
-    &bull; <strong>Not intended for large full-screen animations</strong> &mdash; those should be MP4 (use the Compress tab).<br/>
-    &bull; Lottie with transparency works well at small dimensions. Larger animations with many frames will produce very large Lottie files.<br/><br/>
-    <strong>How to use:</strong><br/>
-    &bull; <strong>QuickTime with Alpha (.mov)</strong> is the ideal input &mdash; export from After Effects as ProRes 4444 with alpha.<br/>
-    &bull; <strong>PNG frames</strong> &mdash; select multiple PNGs directly (no need to zip). Alpha channels are preserved.<br/>
-    &bull; The checkerboard in the preview represents transparency.
   </div>
 
   </div><!-- /panel-convert -->
