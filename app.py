@@ -390,6 +390,217 @@ def compress_lottie(
 
 
 # ---------------------------------------------------------------------------
+# Video-to-Lottie conversion helpers
+# ---------------------------------------------------------------------------
+
+ALPHA_PIX_FMTS = {"yuva420p", "yuva422p", "yuva444p", "rgba", "argb", "abgr",
+                  "bgra", "gbrap", "ya8", "pal8"}
+
+
+def analyze_video_for_convert(file_path: str) -> dict:
+    """Analyze a video file for Lottie conversion, detecting alpha channel."""
+    cmd = [
+        "ffprobe", "-v", "quiet", "-print_format", "json",
+        "-show_format", "-show_streams", file_path,
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    data = json.loads(result.stdout)
+
+    vs = next((s for s in data.get("streams", []) if s["codec_type"] == "video"), None)
+    if not vs:
+        raise ValueError("No video stream found")
+
+    pix_fmt = vs.get("pix_fmt", "")
+    has_alpha = pix_fmt in ALPHA_PIX_FMTS
+
+    fps_parts = vs.get("r_frame_rate", "0/1").split("/")
+    fps = round(int(fps_parts[0]) / max(int(fps_parts[1]), 1), 2)
+
+    duration = float(data["format"].get("duration", 0))
+    frame_count = round(fps * duration)
+
+    return {
+        "file_size": int(data["format"].get("size", 0)),
+        "width": int(vs.get("width", 0)),
+        "height": int(vs.get("height", 0)),
+        "fps": fps,
+        "duration": round(duration, 2),
+        "frame_count": frame_count,
+        "codec": vs.get("codec_name", "unknown"),
+        "pix_fmt": pix_fmt,
+        "has_alpha": has_alpha,
+        "input_type": "video",
+    }
+
+
+def analyze_png_sequence(file_path: str) -> dict:
+    """Analyze a ZIP of PNG files for Lottie conversion."""
+    p = Path(file_path)
+    file_size = p.stat().st_size
+
+    with zipfile.ZipFile(p, "r") as zf:
+        png_names = sorted([
+            n for n in zf.namelist()
+            if n.lower().endswith(".png") and not n.startswith("__MACOSX")
+        ])
+        if not png_names:
+            raise ValueError("No PNG files found in ZIP")
+
+        with zf.open(png_names[0]) as f:
+            img = Image.open(f)
+            img.load()
+            w, h = img.size
+            has_alpha = img.mode in ("RGBA", "LA", "PA")
+
+    return {
+        "file_size": file_size,
+        "width": w,
+        "height": h,
+        "fps": 24,
+        "duration": round(len(png_names) / 24, 2),
+        "frame_count": len(png_names),
+        "has_alpha": has_alpha,
+        "input_type": "png_sequence",
+    }
+
+
+def _build_animation_json(width: int, height: int, fps: float, frame_count: int,
+                          frame_ext: str = "png") -> dict:
+    """Build a minimal Lottie animation.json for an image sequence."""
+    default_ks = {
+        "o": {"a": 0, "k": 100},
+        "r": {"a": 0, "k": 0},
+        "p": {"a": 0, "k": [0, 0, 0]},
+        "a": {"a": 0, "k": [0, 0, 0]},
+        "s": {"a": 0, "k": [100, 100, 100]},
+    }
+
+    assets = []
+    layers = []
+    for i in range(1, frame_count + 1):
+        assets.append({
+            "id": str(i), "w": width, "h": height,
+            "u": "/images/", "p": f"{i}.{frame_ext}", "e": 0,
+        })
+        layers.append({
+            "ddd": 0, "ty": 2, "nm": f"frame_{i}",
+            "refId": str(i), "ip": i - 1, "op": i,
+            "st": 0, "sr": 1, "ks": default_ks, "ao": 0,
+        })
+
+    return {
+        "v": "5.7.1", "fr": fps, "ip": 0, "op": frame_count,
+        "w": width, "h": height, "nm": "converted", "ddd": 0,
+        "assets": assets, "layers": layers,
+    }
+
+
+def convert_video_to_lottie(input_path: str, output_path: str, *,
+                            fps: float | None = None, frame_fmt: str = "png") -> dict:
+    """Convert a video (with or without alpha) to a .lottie file."""
+    probe = subprocess.run(
+        ["ffprobe", "-v", "quiet", "-print_format", "json",
+         "-show_format", "-show_streams", "-select_streams", "v:0", input_path],
+        capture_output=True, text=True, check=True,
+    )
+    pdata = json.loads(probe.stdout)
+    vs = pdata.get("streams", [{}])[0]
+    pix_fmt = vs.get("pix_fmt", "")
+    has_alpha = pix_fmt in ALPHA_PIX_FMTS
+    src_w, src_h = int(vs.get("width", 0)), int(vs.get("height", 0))
+
+    if fps is None:
+        fps_parts = vs.get("r_frame_rate", "24/1").split("/")
+        fps = round(int(fps_parts[0]) / max(int(fps_parts[1]), 1), 2)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir = Path(tmpdir)
+        frames_dir = tmpdir / "images"
+        frames_dir.mkdir()
+
+        ffmpeg_cmd = ["ffmpeg", "-y", "-i", input_path]
+        if has_alpha:
+            ffmpeg_cmd.extend(["-pix_fmt", "rgba"])
+        ffmpeg_cmd.extend([str(frames_dir / f"%04d.{frame_fmt}")])
+        subprocess.run(ffmpeg_cmd, capture_output=True, text=True, check=True)
+
+        frame_files = sorted(frames_dir.iterdir())
+        frame_count = len(frame_files)
+        if frame_count == 0:
+            raise ValueError("No frames extracted from video")
+
+        for i, fpath in enumerate(frame_files, start=1):
+            fpath.rename(frames_dir / f"{i}.{frame_fmt}")
+
+        anim = _build_animation_json(src_w, src_h, fps, frame_count, frame_fmt)
+
+        anim_dir = tmpdir / "animations"
+        anim_dir.mkdir()
+        with open(anim_dir / "animation.json", "w") as f:
+            json.dump(anim, f, separators=(",", ":"))
+
+        with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            for root, _, files in os.walk(tmpdir):
+                for file in files:
+                    fp = Path(root) / file
+                    zf.write(fp, fp.relative_to(tmpdir))
+
+    return {
+        "lottie_size": os.path.getsize(output_path),
+        "frame_count": frame_count,
+        "fps": fps,
+        "width": src_w,
+        "height": src_h,
+        "has_alpha": has_alpha,
+    }
+
+
+def convert_pngs_to_lottie(input_path: str, output_path: str, *,
+                           fps: float = 24, frame_fmt: str = "png") -> dict:
+    """Convert a ZIP of PNG files to a .lottie file."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir = Path(tmpdir)
+        frames_dir = tmpdir / "images"
+        frames_dir.mkdir()
+
+        with zipfile.ZipFile(input_path, "r") as zf:
+            png_names = sorted([
+                n for n in zf.namelist()
+                if n.lower().endswith(".png") and not n.startswith("__MACOSX")
+            ])
+            for i, name in enumerate(png_names, start=1):
+                with zf.open(name) as src:
+                    img = Image.open(src)
+                    img.load()
+                if i == 1:
+                    w, h = img.size
+                img.save(frames_dir / f"{i}.{frame_fmt}", frame_fmt.upper())
+
+        frame_count = len(png_names)
+        anim = _build_animation_json(w, h, fps, frame_count, frame_fmt)
+
+        anim_dir = tmpdir / "animations"
+        anim_dir.mkdir()
+        with open(anim_dir / "animation.json", "w") as f:
+            json.dump(anim, f, separators=(",", ":"))
+
+        with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            for root, _, files in os.walk(tmpdir):
+                for file in files:
+                    fp = Path(root) / file
+                    zf.write(fp, fp.relative_to(tmpdir))
+
+    return {
+        "lottie_size": os.path.getsize(output_path),
+        "frame_count": frame_count,
+        "fps": fps,
+        "width": w,
+        "height": h,
+        "has_alpha": True,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Housekeeping
 # ---------------------------------------------------------------------------
 
@@ -575,6 +786,99 @@ def preview_compressed(file_id):
         mime = _mime_for(m.suffix)
         return send_file(str(m), mimetype=mime)
     return jsonify({"error": "Compressed file not found"}), 404
+
+
+@app.route("/api/upload-convert", methods=["POST"])
+def upload_convert():
+    cleanup_old_files()
+
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+
+    file = request.files["file"]
+    if not file.filename:
+        return jsonify({"error": "No file selected"}), 400
+
+    ext = Path(file.filename).suffix.lower()
+    if ext not in (".mov", ".mp4", ".zip"):
+        return jsonify({"error": f"Unsupported format ({ext}). Use .mov (QuickTime with Alpha) or .zip (PNG sequence)."}), 400
+
+    file_id = str(uuid.uuid4())
+    save_path = UPLOAD_DIR / f"{file_id}{ext}"
+    file.save(str(save_path))
+
+    try:
+        if ext == ".zip":
+            info = analyze_png_sequence(str(save_path))
+        else:
+            info = analyze_video_for_convert(str(save_path))
+    except Exception as e:
+        save_path.unlink(missing_ok=True)
+        return jsonify({"error": f"Could not read file: {e}"}), 400
+
+    return jsonify({
+        "file_id": file_id,
+        "original_name": file.filename,
+        "ext": ext,
+        **info,
+    })
+
+
+@app.route("/api/convert", methods=["POST"])
+def convert():
+    data = request.get_json()
+    file_id = data.get("file_id")
+    input_type = data.get("input_type")
+    fps = data.get("fps")
+    frame_fmt = data.get("frame_fmt", "png")
+
+    if not file_id:
+        return jsonify({"error": "Missing file_id"}), 400
+
+    matches = list(UPLOAD_DIR.glob(f"{file_id}.*"))
+    matches = [m for m in matches if "_converted" not in m.name]
+    if not matches:
+        return jsonify({"error": "File not found. Please re-upload."}), 404
+    input_path = str(matches[0])
+    output_path = str(UPLOAD_DIR / f"{file_id}_converted.lottie")
+
+    try:
+        if input_type == "png_sequence":
+            result = convert_pngs_to_lottie(
+                input_path, output_path,
+                fps=fps or 24,
+                frame_fmt=frame_fmt,
+            )
+        else:
+            result = convert_video_to_lottie(
+                input_path, output_path,
+                fps=fps,
+                frame_fmt=frame_fmt,
+            )
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": f"Conversion failed: {e.stderr}"}), 500
+    except Exception as e:
+        return jsonify({"error": f"Conversion failed: {e}"}), 500
+
+    return jsonify({"file_id": file_id, **result})
+
+
+@app.route("/api/download/<file_id>/converted")
+def download_converted(file_id):
+    lottie_path = UPLOAD_DIR / f"{file_id}_converted.lottie"
+    if not lottie_path.exists():
+        return jsonify({"error": "Converted file not found"}), 404
+    originals = [m for m in UPLOAD_DIR.glob(f"{file_id}.*") if "_converted" not in m.name]
+    stem = originals[0].stem if originals else "animation"
+    return send_file(str(lottie_path), as_attachment=True, download_name=f"{stem}.lottie")
+
+
+@app.route("/api/preview/<file_id>/converted")
+def preview_converted(file_id):
+    lottie_path = UPLOAD_DIR / f"{file_id}_converted.lottie"
+    if not lottie_path.exists():
+        return jsonify({"error": "Converted file not found"}), 404
+    return send_file(str(lottie_path), mimetype="application/octet-stream")
 
 
 def _mime_for(ext: str) -> str:
