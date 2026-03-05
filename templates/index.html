@@ -199,7 +199,7 @@
     }
 
     /* Preview */
-    .preview-area { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .preview-area { margin-bottom: 20px; }
     .preview-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
     .preview-box .preview-label {
       padding: 10px 16px; font-size: 12px; text-transform: uppercase;
@@ -207,6 +207,97 @@
     }
     .preview-box video, .preview-box img { width: 100%; display: block; background: #000; }
     .preview-box dotlottie-player { width: 100%; display: block; background: #000; }
+
+    /* Comparison slider */
+    .comparison-slider {
+      position: relative; overflow: hidden; border-radius: var(--radius);
+      border: 1px solid var(--border); background: #000;
+      cursor: col-resize; user-select: none; -webkit-user-select: none;
+    }
+    .comparison-slider .cs-layer {
+      width: 100%; display: block;
+    }
+    .comparison-slider .cs-layer video,
+    .comparison-slider .cs-layer img {
+      width: 100%; display: block; background: #000;
+    }
+    .comparison-slider .cs-layer dotlottie-player {
+      width: 100%; display: block; background: #000;
+    }
+    .comparison-slider .cs-bottom { position: relative; z-index: 0; }
+    .comparison-slider .cs-top {
+      position: absolute; top: 0; left: 0; height: 100%;
+      overflow: hidden; z-index: 1;
+    }
+    .comparison-slider .cs-top .cs-layer {
+      min-width: 0;
+    }
+    .comparison-slider .cs-divider {
+      position: absolute; top: 0; bottom: 0; width: 3px;
+      background: rgba(255,255,255,0.85);
+      z-index: 3; transform: translateX(-50%);
+      pointer-events: none;
+      box-shadow: 0 0 8px rgba(0,0,0,0.5);
+    }
+    .comparison-slider .cs-handle {
+      position: absolute; top: 50%; z-index: 4;
+      transform: translate(-50%, -50%);
+      width: 48px; height: 48px; border-radius: 50%;
+      background: rgba(255,255,255,0.95);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4), 0 0 0 3px rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      cursor: col-resize; pointer-events: none;
+      transition: box-shadow 0.2s;
+    }
+    .comparison-slider:hover .cs-handle,
+    .comparison-slider.cs-dragging .cs-handle {
+      box-shadow: 0 2px 16px rgba(0,0,0,0.5), 0 0 0 4px rgba(90,193,255,0.4);
+    }
+    .comparison-slider .cs-handle svg { width: 24px; height: 24px; color: #1a1e24; }
+    .comparison-slider .cs-label {
+      position: absolute; bottom: 12px; z-index: 2;
+      padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .comparison-slider .cs-label-left {
+      left: 12px;
+      background: rgba(0,0,0,0.65); color: rgba(255,255,255,0.9);
+      backdrop-filter: blur(4px);
+    }
+    .comparison-slider .cs-label-right {
+      right: 12px;
+      background: rgba(90,193,255,0.85); color: #fff;
+      backdrop-filter: blur(4px);
+    }
+    .cs-hint {
+      font-size: 12px; color: var(--text-muted); white-space: nowrap;
+      opacity: 1; transition: opacity 0.4s;
+    }
+    .cs-hint.hidden { opacity: 0; }
+    @keyframes cs-pulse {
+      0%, 100% { box-shadow: 0 2px 12px rgba(0,0,0,0.4), 0 0 0 3px rgba(255,255,255,0.2); }
+      50% { box-shadow: 0 2px 16px rgba(0,0,0,0.5), 0 0 0 6px rgba(90,193,255,0.35); }
+    }
+    .comparison-slider .cs-handle.cs-pulse { animation: cs-pulse 1.8s ease-in-out 3; }
+    @keyframes cs-nudge {
+      0%, 100% { left: 50%; }
+      30% { left: 45%; }
+      70% { left: 55%; }
+    }
+    .comparison-slider.cs-nudge .cs-divider,
+    .comparison-slider.cs-nudge .cs-handle {
+      animation: cs-nudge 1.2s ease-in-out 1 forwards;
+    }
+    .comparison-slider.cs-nudge .cs-top {
+      animation: cs-nudge-clip 1.2s ease-in-out 1 forwards;
+    }
+    @keyframes cs-nudge-clip {
+      0%, 100% { width: 50%; }
+      30% { width: 45%; }
+      70% { width: 55%; }
+    }
 
     .download-btn {
       width: 100%; padding: 14px 32px; border: none; border-radius: var(--radius);
@@ -599,12 +690,13 @@
       .presets { grid-template-columns: 1fr; }
       .comparison { grid-template-columns: 1fr; gap: 8px; }
       .arrow { transform: rotate(90deg); text-align: center; }
-      .preview-area { grid-template-columns: 1fr; }
       .option-row { flex-direction: column; align-items: flex-start; gap: 8px; }
       .option-row .hint { margin-left: 0; }
       .preview-mode-selector { flex-wrap: wrap; }
       .phone-frame { transform: scale(0.7); }
       .phone-wrapper { width: 275px; height: 596px; }
+      .comparison-slider .cs-handle { width: 40px; height: 40px; }
+      .comparison-slider .cs-handle svg { width: 20px; height: 20px; }
     }
   </style>
 </head>
@@ -1302,19 +1394,127 @@ function renderRawPreviews(type, fileId) {
   const origUrl = `/api/preview/${fileId}?t=${ts}`;
   const compUrl = `/api/preview/${fileId}/compressed?t=${ts}`;
 
-  if (type === 'video') {
-    area.innerHTML = `
-      <div class="preview-box"><div class="preview-label">Original</div><video src="${origUrl}" controls loop muted playsinline></video></div>
-      <div class="preview-box"><div class="preview-label">Compressed</div><video src="${compUrl}" controls loop muted playsinline></video></div>`;
-  } else if (type === 'image') {
-    area.innerHTML = `
-      <div class="preview-box"><div class="preview-label">Original</div><img src="${origUrl}" /></div>
-      <div class="preview-box"><div class="preview-label">Compressed</div><img src="${compUrl}" /></div>`;
-  } else if (type === 'lottie') {
-    area.innerHTML = `
-      <div class="preview-box"><div class="preview-label">Original</div><dotlottie-player src="${origUrl}" autoplay loop style="width:100%;background:#000;"></dotlottie-player></div>
-      <div class="preview-box"><div class="preview-label">Compressed</div><dotlottie-player src="${compUrl}" autoplay loop style="width:100%;background:#000;"></dotlottie-player></div>`;
+  const handleSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l6-6-6-6"/><path d="M9 6l-6 6 6 6"/></svg>`;
+
+  function buildAsset(url) {
+    if (type === 'video') return `<video src="${url}" autoplay loop muted playsinline></video>`;
+    if (type === 'image') return `<img src="${url}" />`;
+    if (type === 'lottie') return `<dotlottie-player src="${url}" autoplay loop style="width:100%;background:#000;"></dotlottie-player>`;
+    return '';
   }
+
+  area.innerHTML = `
+    <div class="comparison-slider" id="cs-container">
+      <div class="cs-bottom cs-layer">${buildAsset(compUrl)}</div>
+      <div class="cs-top" id="cs-top" style="width:50%;">
+        <div class="cs-layer" id="cs-top-inner">${buildAsset(origUrl)}</div>
+      </div>
+      <div class="cs-divider" id="cs-divider" style="left:50%;"></div>
+      <div class="cs-handle cs-pulse" id="cs-handle" style="left:50%;">${handleSvg}</div>
+      <span class="cs-label cs-label-left">Original</span>
+      <span class="cs-label cs-label-right">Compressed</span>
+    </div>
+    <div style="text-align:center;margin-top:6px;">
+      <span class="cs-hint" id="cs-hint">Drag to compare</span>
+    </div>`;
+
+  requestAnimationFrame(() => {
+    const container = $('cs-container');
+    if (!container) return;
+    const topInner = $('cs-top-inner');
+    topInner.style.width = container.offsetWidth + 'px';
+
+    initComparisonSlider(container);
+
+    if (type === 'video') syncVideos(container);
+
+    setTimeout(() => {
+      container.classList.add('cs-nudge');
+      container.addEventListener('animationend', () => {
+        container.classList.remove('cs-nudge');
+      }, { once: true });
+    }, 600);
+  });
+}
+
+function syncVideos(container) {
+  const videos = container.querySelectorAll('video');
+  if (videos.length < 2) return;
+  const [bottom, top] = videos;
+
+  function syncPlay() {
+    if (bottom.readyState >= 3 && top.readyState >= 3) {
+      bottom.currentTime = 0;
+      top.currentTime = 0;
+      bottom.play();
+      top.play();
+    } else {
+      requestAnimationFrame(syncPlay);
+    }
+  }
+  syncPlay();
+
+  setInterval(() => {
+    if (Math.abs(bottom.currentTime - top.currentTime) > 0.1) {
+      top.currentTime = bottom.currentTime;
+    }
+  }, 500);
+}
+
+function initComparisonSlider(container) {
+  const top = container.querySelector('.cs-top');
+  const topInner = container.querySelector('#cs-top-inner');
+  const divider = container.querySelector('.cs-divider');
+  const handle = container.querySelector('.cs-handle');
+  const labelLeft = container.querySelector('.cs-label-left');
+  const labelRight = container.querySelector('.cs-label-right');
+  const hint = document.querySelector('.cs-hint');
+  let dragging = false;
+  let hintHidden = false;
+
+  function setPosition(clientX) {
+    const rect = container.getBoundingClientRect();
+    let pct = ((clientX - rect.left) / rect.width) * 100;
+    pct = Math.max(1, Math.min(99, pct));
+    top.style.width = pct + '%';
+    topInner.style.width = rect.width + 'px';
+    divider.style.left = pct + '%';
+    handle.style.left = pct + '%';
+
+    labelLeft.style.opacity = pct < 30 ? Math.max(0, (pct - 5) / 25) : 1;
+    labelRight.style.opacity = pct > 70 ? Math.max(0, (95 - pct) / 25) : 1;
+  }
+
+  function onStart(clientX) {
+    dragging = true;
+    container.classList.add('cs-dragging');
+    handle.classList.remove('cs-pulse');
+    if (!hintHidden && hint) { hint.classList.add('hidden'); hintHidden = true; }
+    setPosition(clientX);
+  }
+
+  function onMove(clientX) {
+    if (!dragging) return;
+    setPosition(clientX);
+  }
+
+  function onEnd() {
+    dragging = false;
+    container.classList.remove('cs-dragging');
+  }
+
+  container.addEventListener('mousedown', e => { e.preventDefault(); onStart(e.clientX); });
+  window.addEventListener('mousemove', e => { if (dragging) { e.preventDefault(); onMove(e.clientX); } });
+  window.addEventListener('mouseup', onEnd);
+
+  container.addEventListener('touchstart', e => { onStart(e.touches[0].clientX); }, { passive: true });
+  window.addEventListener('touchmove', e => { if (dragging) onMove(e.touches[0].clientX); }, { passive: true });
+  window.addEventListener('touchend', onEnd);
+
+  const ro = new ResizeObserver(() => {
+    topInner.style.width = container.offsetWidth + 'px';
+  });
+  ro.observe(container);
 }
 
 function assetEl(type, url) {
