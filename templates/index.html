@@ -717,8 +717,8 @@
 
   <div class="tip-box">
     <strong>When to use Compress:</strong><br/>
-    &bull; <strong>MP4 is the go-to format</strong> for animations with raster effects, gradients, particles, or any non-transparent content. Creative should export as MP4 and compress here.<br/>
-    &bull; <strong>Lottie</strong> files with embedded image sequences can also be compressed (recompresses frames, reduces FPS).<br/>
+    &bull; <strong>Just drop any asset</strong> &mdash; the tool automatically picks the best output format for quality and size.<br/>
+    &bull; <strong>Lottie files with raster frames</strong> and no transparency are automatically converted to MP4 for dramatically better compression.<br/>
     &bull; <strong>Images</strong> (PNG, JPG) &mdash; great for static assets, hero images, and poster frames.<br/>
     &bull; This tool typically reduces MP4 files by <strong>70&ndash;85%</strong> with negligible quality loss.
   </div>
@@ -926,7 +926,7 @@
 </div>
 
 <script>
-const state = { fileId: null, assetType: null, preset: 'balanced', advancedOpen: false, fileData: null };
+const state = { fileId: null, assetType: null, preset: 'balanced', advancedOpen: false, fileData: null, outputFormat: null };
 
 const $ = id => document.getElementById(id);
 
@@ -959,10 +959,10 @@ const TIPS = {
     &bull; If your image needs transparency, it will be saved as PNG to preserve the alpha channel.<br/>
     &bull; Always use the <strong>2x export</strong> from your design tool &mdash; 1x looks blurry on modern phones.`,
   lottie: `<strong>Lottie tips:</strong><br/>
-    &bull; Most Lotties from Creative are image sequences (raster frames inside a zip). That's what this tool optimizes.<br/>
-    &bull; <strong>Balanced</strong> recompresses frames to WebP and drops to 15fps &mdash; usually 60-80% smaller.<br/>
+    &bull; <strong>Raster Lotties without transparency</strong> are automatically converted to MP4 &mdash; dramatically smaller at equal or better quality.<br/>
+    &bull; Lotties <strong>with transparency</strong> stay as Lottie and get their frames recompressed to WebP.<br/>
     &bull; If the Lottie is a true vector animation (no embedded images), it's already small and won't benefit much from recompression.<br/>
-    &bull; Preview at <a href="https://iconscout.com/tools/lottie-preview" target="_blank" style="color:var(--accent)">Iconscout Lottie Preview</a> after downloading.`,
+    &bull; Preview Lottie files at <a href="https://iconscout.com/tools/lottie-preview" target="_blank" style="color:var(--accent)">Iconscout Lottie Preview</a> after downloading.`,
 };
 
 // ---- Upload ----
@@ -978,7 +978,7 @@ $('remove-btn').addEventListener('click', resetAll);
 $('start-over-btn').addEventListener('click', resetAll);
 
 function resetAll() {
-  state.fileId = null; state.assetType = null; state.fileData = null;
+  state.fileId = null; state.assetType = null; state.fileData = null; state.outputFormat = null;
   fileInput.value = '';
   $('file-info').classList.remove('visible');
   $('options-section').classList.remove('visible');
@@ -1011,14 +1011,18 @@ async function handleFile(file) {
     state.fileId = data.file_id;
     state.assetType = data.asset_type;
     state.fileData = data;
+    state.outputFormat = data.recommended_format || data.asset_type;
+
+    const effectiveType = state.outputFormat === 'mp4' ? 'video' : data.asset_type;
 
     $('file-name').textContent = data.original_name;
     renderTypeBadge(data.asset_type);
     renderStats(data);
-    renderPresets(data.asset_type);
-    renderAdvanced(data.asset_type, data);
+    renderPresets(effectiveType);
+    renderAdvanced(effectiveType, data);
     $('tip-box').innerHTML = TIPS[data.asset_type] || '';
 
+    $('compress-btn').textContent = state.outputFormat === 'mp4' && data.asset_type === 'lottie' ? 'Convert to MP4' : 'Compress';
     $('options-section').classList.add('visible');
     $('results').classList.remove('visible');
   } catch {
@@ -1064,9 +1068,17 @@ function renderStats(data) {
       notice.textContent = 'This image uses transparency. It will be saved as PNG to preserve the alpha channel.';
     }
   }
-  if (data.asset_type === 'lottie' && !data.is_image_sequence) {
-    notice.className = 'alpha-notice warn visible';
-    notice.textContent = 'This is a vector Lottie (no embedded raster images). Compression won\'t help much since it\'s already lightweight.';
+  if (data.asset_type === 'lottie') {
+    if (!data.is_image_sequence) {
+      notice.className = 'alpha-notice warn visible';
+      notice.textContent = 'This is a vector Lottie (no embedded raster images). Compression won\'t help much since it\'s already lightweight.';
+    } else if (data.recommended_format === 'mp4') {
+      notice.className = 'alpha-notice safe visible';
+      notice.textContent = 'This animation uses raster frames without transparency \u2014 it will be converted to MP4 for much better quality at a smaller file size.';
+    } else if (data.has_alpha) {
+      notice.className = 'alpha-notice warn visible';
+      notice.textContent = 'This Lottie uses transparency. It will stay as Lottie to preserve the alpha channel.';
+    }
   }
 }
 
@@ -1219,21 +1231,23 @@ async function runCompress(presetOverride) {
   if (presetOverride) state.preset = presetOverride;
 
   const body = { file_id: state.fileId, asset_type: state.assetType, preset: state.preset };
+  if (state.outputFormat) body.output_format = state.outputFormat;
+
+  const effectiveType = state.outputFormat === 'mp4' ? 'video' : state.assetType;
 
   if (!presetOverride && state.advancedOpen) {
-    const type = state.assetType;
-    if (type === 'video') {
+    if (effectiveType === 'video') {
       body.crf = intVal('adv-crf');
       const s = intVal('adv-scale');
       if (s < 100) body.scale = s / 100;
       body.max_fps = intVal('adv-fps');
       body.strip_audio = document.getElementById('adv-strip-audio')?.checked ?? true;
-    } else if (type === 'image') {
+    } else if (effectiveType === 'image') {
       body.quality = intVal('adv-quality');
       body.fmt = document.getElementById('adv-fmt')?.value || 'jpg';
       const s = intVal('adv-scale');
       if (s < 100) body.scale = s / 100;
-    } else if (type === 'lottie') {
+    } else if (effectiveType === 'lottie') {
       body.quality = intVal('adv-quality');
       body.target_fps = intVal('adv-fps');
       const s = intVal('adv-scale');
@@ -1249,14 +1263,21 @@ async function runCompress(presetOverride) {
   }
   if (!res.ok) throw new Error(data.error || 'Compression failed');
 
+  state.outputFormat = data.output_format || state.outputFormat;
+
   $('result-original').textContent = formatSize(data.original_size);
   $('result-compressed').textContent = formatSize(data.compressed_size);
   $('reduction-badge').textContent = data.reduction_pct + '% smaller';
 
   renderPreviews(state.assetType, state.fileId);
-  renderRetryButtons(state.assetType, state.preset);
+  renderRetryButtons(effectiveType, state.preset);
 
   $('download-btn').onclick = () => { window.location.href = `/api/download/${state.fileId}`; };
+
+  const isConvertedToMp4 = state.outputFormat === 'mp4' && state.assetType === 'lottie';
+  $('download-btn').innerHTML = isConvertedToMp4
+    ? `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg> Download MP4`
+    : `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg> Download Compressed File`;
 
   const f0sec = $('frame0-section');
   if (data.frame0) {
@@ -1272,11 +1293,13 @@ async function runCompress(presetOverride) {
 
 $('compress-btn').addEventListener('click', async () => {
   const btn = $('compress-btn');
+  const isMp4Convert = state.outputFormat === 'mp4' && state.assetType === 'lottie';
+  const label = isMp4Convert ? 'Convert to MP4' : 'Compress';
   btn.disabled = true;
-  btn.innerHTML = '<div class="spinner"></div> Compressing...';
+  btn.innerHTML = isMp4Convert ? '<div class="spinner"></div> Converting to MP4...' : '<div class="spinner"></div> Compressing...';
   try { await runCompress(); }
   catch (e) { alert(e.message); }
-  finally { btn.disabled = false; btn.innerHTML = 'Compress'; }
+  finally { btn.disabled = false; btn.innerHTML = label; }
 });
 
 const RETRY_HINTS = {
@@ -1372,6 +1395,7 @@ function renderCurrentPreview() {
   const mode = state.previewMode;
   const area = $('preview-area');
   const insitu = $('insitu-container');
+  const compType = state.outputFormat === 'mp4' ? 'video' : state.assetType;
 
   if (mode === 'raw') {
     area.style.display = '';
@@ -1380,7 +1404,7 @@ function renderCurrentPreview() {
   } else {
     area.style.display = 'none';
     insitu.style.display = '';
-    renderMockup(mode, state.previewVariant, state.assetType, state.fileId);
+    renderMockup(mode, state.previewVariant, compType, state.fileId);
   }
 }
 
@@ -1388,31 +1412,35 @@ function renderPreviews(type, fileId) {
   renderCurrentPreview();
 }
 
+function buildAssetEl(type, url) {
+  if (type === 'video') return `<video src="${url}" autoplay loop muted playsinline></video>`;
+  if (type === 'image') return `<img src="${url}" />`;
+  if (type === 'lottie') return `<dotlottie-player src="${url}" autoplay loop style="width:100%;background:#000;"></dotlottie-player>`;
+  return '';
+}
+
 function renderRawPreviews(type, fileId) {
   const area = $('preview-area');
   const ts = Date.now();
   const origUrl = `/api/preview/${fileId}?t=${ts}`;
   const compUrl = `/api/preview/${fileId}/compressed?t=${ts}`;
+  const compType = state.outputFormat === 'mp4' ? 'video' : type;
 
   const handleSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l6-6-6-6"/><path d="M9 6l-6 6 6 6"/></svg>`;
 
-  function buildAsset(url) {
-    if (type === 'video') return `<video src="${url}" autoplay loop muted playsinline></video>`;
-    if (type === 'image') return `<img src="${url}" />`;
-    if (type === 'lottie') return `<dotlottie-player src="${url}" autoplay loop style="width:100%;background:#000;"></dotlottie-player>`;
-    return '';
-  }
+  const origLabel = compType !== type ? 'Original (.lottie)' : 'Original';
+  const compLabel = compType !== type ? 'Compressed (.mp4)' : 'Compressed';
 
   area.innerHTML = `
     <div class="comparison-slider" id="cs-container">
-      <div class="cs-bottom cs-layer">${buildAsset(compUrl)}</div>
+      <div class="cs-bottom cs-layer">${buildAssetEl(compType, compUrl)}</div>
       <div class="cs-top" id="cs-top" style="width:50%;">
-        <div class="cs-layer" id="cs-top-inner">${buildAsset(origUrl)}</div>
+        <div class="cs-layer" id="cs-top-inner">${buildAssetEl(type, origUrl)}</div>
       </div>
       <div class="cs-divider" id="cs-divider" style="left:50%;"></div>
       <div class="cs-handle cs-pulse" id="cs-handle" style="left:50%;">${handleSvg}</div>
-      <span class="cs-label cs-label-left">Original</span>
-      <span class="cs-label cs-label-right">Compressed</span>
+      <span class="cs-label cs-label-left">${origLabel}</span>
+      <span class="cs-label cs-label-right">${compLabel}</span>
     </div>
     <div style="text-align:center;margin-top:6px;">
       <span class="cs-hint" id="cs-hint">Drag to compare</span>
@@ -1426,7 +1454,7 @@ function renderRawPreviews(type, fileId) {
 
     initComparisonSlider(container);
 
-    if (type === 'video') syncVideos(container);
+    if (compType === 'video') syncVideos(container);
 
     setTimeout(() => {
       container.classList.add('cs-nudge');

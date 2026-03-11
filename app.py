@@ -236,6 +236,22 @@ def compress_image(
 # Lottie helpers
 # ---------------------------------------------------------------------------
 
+def _check_alpha_usage(zf: zipfile.ZipFile, image_names: list[str]) -> bool:
+    """Sample a few frames from a Lottie ZIP and return True if any use transparency."""
+    if not image_names:
+        return False
+    indices = {0, len(image_names) // 2, len(image_names) - 1}
+    for idx in sorted(indices):
+        with zf.open(image_names[idx]) as img_file:
+            img = Image.open(img_file)
+            img.load()
+        if img.mode not in ("RGBA", "LA", "PA"):
+            continue
+        if img.getchannel("A").getextrema()[0] < 255:
+            return True
+    return False
+
+
 def analyze_lottie(file_path: str) -> dict:
     p = Path(file_path)
     file_size = p.stat().st_size
@@ -264,10 +280,17 @@ def analyze_lottie(file_path: str) -> dict:
                 img.save(buf, "WEBP", quality=q)
                 estimates[f"q{q}"] = round(buf.tell() / mid_orig, 3)
 
+        has_alpha = _check_alpha_usage(zf, image_names)
+
     fps = anim["fr"]
     frames = int(anim["op"] - anim["ip"])
     duration = frames / fps if fps else 0
     is_image_sequence = len(image_names) > 1
+
+    if is_image_sequence and not has_alpha:
+        recommended_format = "mp4"
+    else:
+        recommended_format = "lottie"
 
     return {
         "file_size": file_size,
@@ -281,6 +304,8 @@ def analyze_lottie(file_path: str) -> dict:
         "image_count": len(image_names),
         "image_total_bytes": image_total,
         "is_image_sequence": is_image_sequence,
+        "has_alpha": has_alpha,
+        "recommended_format": recommended_format,
         "compression_ratios": estimates,
     }
 
@@ -380,6 +405,64 @@ def compress_lottie(
                 for file in files:
                     fp = Path(root) / file
                     zf.write(fp, fp.relative_to(tmpdir))
+
+    new_size = Path(output_path).stat().st_size
+    return {
+        "original_size": orig_size,
+        "compressed_size": new_size,
+        "reduction_pct": round((1 - new_size / orig_size) * 100, 1),
+    }
+
+
+def lottie_to_mp4(
+    input_path: str, output_path: str, *,
+    crf: int = 27, preset: str = "veryfast",
+    scale: float | None = None, max_fps: int | None = None,
+) -> dict:
+    """Convert a raster-frame Lottie to an H.264 MP4 via FFmpeg."""
+    input_path = Path(input_path)
+    orig_size = input_path.stat().st_size
+
+    with zipfile.ZipFile(input_path, "r") as zf:
+        with zf.open("animations/animation.json") as f:
+            anim = json.load(f)
+        image_names = sorted(
+            [n for n in zf.namelist() if n.startswith("images/")],
+            key=lambda n: int(Path(n).stem) if Path(n).stem.isdigit() else n,
+        )
+        if not image_names:
+            raise ValueError("Lottie has no embedded images to convert")
+
+        fps = anim["fr"]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir = Path(tmpdir)
+            frames_dir = tmpdir / "frames"
+            frames_dir.mkdir()
+
+            ext = Path(image_names[0]).suffix
+            for i, name in enumerate(image_names, start=1):
+                with zf.open(name) as src:
+                    (frames_dir / f"{i:04d}{ext}").write_bytes(src.read())
+
+            vf_filters = []
+            if scale and scale < 1.0:
+                vf_filters.append(f"scale=iw*{scale}:ih*{scale}:flags=lanczos")
+            if max_fps and max_fps < fps:
+                vf_filters.append(f"fps={max_fps}")
+
+            cmd = [
+                "ffmpeg", "-y",
+                "-framerate", str(fps),
+                "-i", str(frames_dir / f"%04d{ext}"),
+                "-c:v", "libx264", "-crf", str(crf), "-preset", preset,
+                "-tune", "animation", "-pix_fmt", "yuv420p",
+            ]
+            if vf_filters:
+                cmd.extend(["-vf", ",".join(vf_filters)])
+            cmd.extend(["-an", "-movflags", "+faststart", str(output_path)])
+
+            subprocess.run(cmd, capture_output=True, text=True, check=True)
 
     new_size = Path(output_path).stat().st_size
     return {
@@ -710,14 +793,32 @@ def compress():
             )
 
         elif asset_type == "lottie":
-            output_path = str(UPLOAD_DIR / f"{file_id}_compressed.lottie")
-            p = LOTTIE_PRESETS.get(preset_name, LOTTIE_PRESETS["balanced"])
-            result = compress_lottie(
-                input_path, output_path,
-                quality=data.get("quality", p["quality"]),
-                target_fps=data.get("target_fps", p["fps"]),
-                scale=data.get("scale", p["scale"]),
-            )
+            output_format = data.get("output_format", "lottie")
+
+            if output_format == "mp4":
+                output_path = str(UPLOAD_DIR / f"{file_id}_compressed.mp4")
+                frame0_path = str(UPLOAD_DIR / f"{file_id}_frame0.png")
+                p = VIDEO_PRESETS.get(preset_name, VIDEO_PRESETS["balanced"])
+                result = lottie_to_mp4(
+                    input_path, output_path,
+                    crf=data.get("crf", p["crf"]),
+                    preset=p["preset"],
+                    scale=data.get("scale"),
+                    max_fps=data.get("max_fps"),
+                )
+                frame0_info = extract_frame0(output_path, frame0_path)
+                result["frame0"] = frame0_info
+                result["output_format"] = "mp4"
+            else:
+                output_path = str(UPLOAD_DIR / f"{file_id}_compressed.lottie")
+                p = LOTTIE_PRESETS.get(preset_name, LOTTIE_PRESETS["balanced"])
+                result = compress_lottie(
+                    input_path, output_path,
+                    quality=data.get("quality", p["quality"]),
+                    target_fps=data.get("target_fps", p["fps"]),
+                    scale=data.get("scale", p["scale"]),
+                )
+                result["output_format"] = "lottie"
         else:
             return jsonify({"error": f"Unknown asset type: {asset_type}"}), 400
 
