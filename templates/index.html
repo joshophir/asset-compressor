@@ -678,6 +678,29 @@
       font-size: 9px; color: rgba(255,255,255,0.3);
     }
 
+    .lottie-fallback {
+      display: none; margin-top: 14px;
+    }
+    .lottie-fallback.visible { display: block; }
+    .lottie-fallback-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px 20px;
+      display: flex; align-items: center; gap: 16px;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .lottie-fallback-card:hover { border-color: var(--accent); background: rgba(90,193,255,0.04); }
+    .lottie-fallback-text { flex: 1; }
+    .lottie-fallback-title {
+      font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 2px;
+    }
+    .lottie-fallback-desc {
+      font-size: 12px; color: var(--text-muted); line-height: 1.5;
+    }
+    .lottie-fallback-action {
+      font-size: 13px; font-weight: 600; color: var(--accent);
+      white-space: nowrap; flex-shrink: 0;
+    }
+
     .tip-box {
       background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--radius); padding: 16px 20px; margin-bottom: 24px;
@@ -765,6 +788,7 @@
     <div class="advanced-options" id="advanced-options"></div>
 
     <button class="compress-btn" id="compress-btn">Compress</button>
+    <div class="lottie-fallback" id="lottie-fallback"></div>
   </div>
 
   <!-- Results -->
@@ -983,6 +1007,7 @@ function resetAll() {
   $('file-info').classList.remove('visible');
   $('options-section').classList.remove('visible');
   $('results').classList.remove('visible');
+  $('lottie-fallback').classList.remove('visible');
   dropZone.style.display = '';
   state.advancedOpen = false;
   $('advanced-toggle').classList.remove('open');
@@ -1023,6 +1048,7 @@ async function handleFile(file) {
     $('tip-box').innerHTML = TIPS[data.asset_type] || '';
 
     $('compress-btn').textContent = state.outputFormat === 'mp4' && data.asset_type === 'lottie' ? 'Convert to MP4' : 'Compress';
+    renderLottieFallback();
     $('options-section').classList.add('visible');
     $('results').classList.remove('visible');
   } catch {
@@ -1080,6 +1106,69 @@ function renderStats(data) {
       notice.textContent = 'This Lottie uses transparency. It will stay as Lottie to preserve the alpha channel.';
     }
   }
+}
+
+function renderLottieFallback() {
+  const fb = $('lottie-fallback');
+  const recommended = state.fileData?.recommended_format;
+  if (state.assetType !== 'lottie' || !state.fileData?.is_image_sequence) {
+    fb.classList.remove('visible');
+    fb.innerHTML = '';
+    return;
+  }
+  fb.classList.add('visible');
+
+  if (state.outputFormat === 'mp4' && recommended === 'mp4') {
+    fb.innerHTML = `
+      <div class="lottie-fallback-card" id="fallback-toggle">
+        <div class="lottie-fallback-text">
+          <div class="lottie-fallback-title">Flow doesn't support MP4?</div>
+          <div class="lottie-fallback-desc">Keep as Lottie instead. Compression is more limited for raster animations — file size won't shrink as much as MP4.</div>
+        </div>
+        <span class="lottie-fallback-action">Keep as Lottie &rsaquo;</span>
+      </div>`;
+  } else if (state.outputFormat !== 'mp4' && recommended === 'mp4') {
+    fb.innerHTML = `
+      <div class="lottie-fallback-card" id="fallback-toggle">
+        <div class="lottie-fallback-text">
+          <div class="lottie-fallback-title">MP4 is recommended for this animation</div>
+          <div class="lottie-fallback-desc">MP4 produces much smaller files at higher quality. Switch back unless your flow specifically requires Lottie.</div>
+        </div>
+        <span class="lottie-fallback-action">Use MP4 &rsaquo;</span>
+      </div>`;
+  } else {
+    fb.classList.remove('visible');
+    fb.innerHTML = '';
+    return;
+  }
+
+  $('fallback-toggle').addEventListener('click', () => {
+    if (state.outputFormat === 'mp4') {
+      switchOutputFormat('lottie');
+    } else {
+      switchOutputFormat('mp4');
+    }
+  });
+}
+
+function switchOutputFormat(fmt) {
+  state.outputFormat = fmt;
+  const effectiveType = fmt === 'mp4' ? 'video' : 'lottie';
+  renderPresets(effectiveType);
+  renderAdvanced(effectiveType, state.fileData);
+  $('compress-btn').textContent = fmt === 'mp4' ? 'Convert to MP4' : 'Compress as Lottie';
+
+  const notice = $('alpha-notice');
+  notice.classList.remove('visible', 'safe', 'warn');
+  if (fmt === 'mp4') {
+    notice.className = 'alpha-notice safe visible';
+    notice.textContent = 'This animation uses raster frames without transparency \u2014 it will be converted to MP4 for much better quality at a smaller file size.';
+  } else {
+    notice.className = 'alpha-notice warn visible';
+    notice.textContent = 'Keeping as Lottie \u2014 frames will be recompressed but file size reduction is limited for raster animations.';
+  }
+
+  renderLottieFallback();
 }
 
 function renderPresets(type) {
@@ -1294,13 +1383,13 @@ async function runCompress(presetOverride) {
 
 $('compress-btn').addEventListener('click', async () => {
   const btn = $('compress-btn');
-  const isMp4Convert = state.outputFormat === 'mp4' && state.assetType === 'lottie';
-  const label = isMp4Convert ? 'Convert to MP4' : 'Compress';
+  const label = btn.textContent;
   btn.disabled = true;
+  const isMp4Convert = state.outputFormat === 'mp4' && state.assetType === 'lottie';
   btn.innerHTML = isMp4Convert ? '<div class="spinner"></div> Converting to MP4...' : '<div class="spinner"></div> Compressing...';
   try { await runCompress(); }
   catch (e) { alert(e.message); }
-  finally { btn.disabled = false; btn.innerHTML = label; }
+  finally { btn.disabled = false; btn.textContent = label; }
 });
 
 const RETRY_HINTS = {
