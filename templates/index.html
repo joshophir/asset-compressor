@@ -1194,7 +1194,8 @@ function renderAdvanced(type, data) {
 function syncAdvancedToPreset(type) {
   const p = state.preset;
   if (type === 'video') {
-    const map = { light: 23, balanced: 27, aggressive: 31 };
+    const isLottieMp4 = state.outputFormat === 'mp4' && state.assetType === 'lottie';
+    const map = isLottieMp4 ? { light: 20, balanced: 23, aggressive: 28 } : { light: 23, balanced: 27, aggressive: 31 };
     setSlider('adv-crf', map[p]);
   } else if (type === 'image') {
     const map = { light: 95, balanced: 90, aggressive: 85 };

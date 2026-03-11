@@ -38,6 +38,12 @@ VIDEO_PRESETS = {
     "aggressive": {"crf": 31, "preset": "veryfast"},
 }
 
+LOTTIE_MP4_PRESETS = {
+    "light":      {"crf": 20, "preset": "veryfast"},
+    "balanced":   {"crf": 23, "preset": "veryfast"},
+    "aggressive": {"crf": 28, "preset": "veryfast"},
+}
+
 LOTTIE_PRESETS = {
     "light":      {"quality": 80, "fps": None, "scale": 1.0},
     "balanced":   {"quality": 65, "fps": 15,   "scale": 1.0},
@@ -798,7 +804,7 @@ def compress():
             if output_format == "mp4":
                 output_path = str(UPLOAD_DIR / f"{file_id}_compressed.mp4")
                 frame0_path = str(UPLOAD_DIR / f"{file_id}_frame0.png")
-                p = VIDEO_PRESETS.get(preset_name, VIDEO_PRESETS["balanced"])
+                p = LOTTIE_MP4_PRESETS.get(preset_name, LOTTIE_MP4_PRESETS["balanced"])
                 result = lottie_to_mp4(
                     input_path, output_path,
                     crf=data.get("crf", p["crf"]),
